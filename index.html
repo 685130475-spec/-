@@ -30,36 +30,86 @@
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
     </style>
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300">
+<body class="bg-sky-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300">
 
-    <!-- Main Container (hidden until teacher logs in) -->
-    <div id="app-shell" class="container mx-auto p-4 md:p-6 hidden">
+    <!-- Screen 1: Select Teacher -->
+    <div id="screen-teacher" class="min-h-screen flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-lg p-6 sm:p-8 max-w-3xl w-full border border-sky-100">
+            <div class="flex flex-col items-center mb-6">
+                <img src="data:image/png;base64,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" class="w-20 h-20 mb-3 object-contain" alt="โลโก้">
+                <h1 class="text-xl sm:text-2xl font-bold text-sky-800 text-center">ระบบเช็คชื่อนักเรียนอัจฉริยะ</h1>
+                <p class="text-sky-500 text-sm mt-1">กรุณาเลือกชื่ออาจารย์ผู้ใช้งาน</p>
+            </div>
+            <div id="teacher-groups" class="space-y-5 max-h-[65vh] overflow-y-auto custom-scrollbar pr-1"></div>
+        </div>
+    </div>
+
+    <!-- Screen 2: Select Classroom & Subject -->
+    <div id="screen-classroom-subject" class="hidden min-h-screen flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-lg p-6 sm:p-8 max-w-2xl w-full border border-sky-100">
+            <div class="flex items-center justify-between mb-2">
+                <button onclick="backToTeacherScreen()" class="text-sky-500 hover:text-sky-700 flex items-center gap-1 text-sm"><i data-lucide="arrow-left" class="w-4 h-4"></i>ย้อนกลับ</button>
+                <span id="cs-teacher-label" class="text-sm text-sky-600 font-medium"></span>
+            </div>
+            <div class="flex flex-col items-center mb-4">
+                <img src="data:image/png;base64,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" class="w-14 h-14 mb-2 object-contain" alt="โลโก้">
+                <h2 class="text-xl font-bold text-sky-800 text-center">เลือกห้องเรียนและวิชาที่สอน</h2>
+            </div>
+
+            <div class="mb-6">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-semibold text-gray-700">ห้องเรียน</h3>
+                    <button onclick="promptAddClassroom()" class="text-sm bg-sky-100 text-sky-700 px-3 py-1.5 rounded-lg hover:bg-sky-200 flex items-center gap-1"><i data-lucide="plus" class="w-4 h-4"></i>เพิ่มห้องเรียน</button>
+                </div>
+                <div id="classroom-grid" class="grid grid-cols-3 sm:grid-cols-4 gap-2"></div>
+                <p id="classroom-empty" class="hidden text-center text-sm text-gray-400 py-3">ยังไม่มีข้อมูลห้องเรียน กดปุ่ม "เพิ่มห้องเรียน" เพื่อเริ่มเพิ่มข้อมูล</p>
+            </div>
+
+            <div class="mb-6">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-semibold text-gray-700">วิชาที่สอน</h3>
+                    <button onclick="promptAddSubject()" class="text-sm bg-sky-100 text-sky-700 px-3 py-1.5 rounded-lg hover:bg-sky-200 flex items-center gap-1"><i data-lucide="plus" class="w-4 h-4"></i>เพิ่มวิชา</button>
+                </div>
+                <div id="subject-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-2"></div>
+                <p id="subject-empty" class="hidden text-center text-sm text-gray-400 py-3">ยังไม่มีข้อมูลวิชา กดปุ่ม "เพิ่มวิชา" เพื่อเริ่มเพิ่มข้อมูล</p>
+            </div>
+
+            <button id="confirm-cs-btn" onclick="confirmClassroomSubject()" disabled class="w-full bg-sky-600 disabled:bg-gray-300 text-white font-bold py-3 rounded-lg hover:bg-sky-700 transition-colors">ยืนยันและเข้าสู่ระบบ</button>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div id="app-main" class="hidden container mx-auto p-4 md:p-6">
 
         <!-- Header -->
-        <header class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+        <header class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-3 flex flex-col sm:flex-row justify-between items-center gap-4">
              <div class="flex items-center space-x-3">
-                <i data-lucide="scan-face" class="text-blue-600 w-8 h-8"></i>
+                <img id="header-logo" src="" class="w-8 h-8 object-contain" alt="โลโก้">
                 <h1 class="text-xl md:text-2xl font-bold text-gray-700 dark:text-gray-200">ระบบเช็คชื่อนักเรียนอัจฉริยะ</h1>
             </div>
             <div class="flex items-center gap-2">
-                <nav class="flex items-center flex-wrap justify-center space-x-1 md:space-x-2 bg-gray-200 dark:bg-gray-700 p-1 rounded-lg">
+                <nav class="flex items-center flex-wrap justify-center space-x-1 md:space-x-2 bg-sky-50 dark:bg-gray-700 p-1 rounded-lg">
                     <button onclick="switchTab('dashboard')" id="tab-dashboard" class="px-3 py-1.5 text-sm font-medium rounded-md">Dashboard</button>
                     <button onclick="switchTab('attendance')" id="tab-attendance" class="px-3 py-1.5 text-sm font-medium rounded-md">เช็คชื่อ</button>
                     <button onclick="switchTab('manage')" id="tab-manage" class="px-3 py-1.5 text-sm font-medium rounded-md">จัดการข้อมูล</button>
                 </nav>
-                <div class="hidden sm:flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 pl-1">
-                    <i data-lucide="user-round" class="w-5 h-5"></i>
-                    <span id="current-teacher-name" class="font-medium"></span>
-                </div>
                 <button onclick="toggleTheme()" type="button" class="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-sm p-2.5">
                     <i data-lucide="sun" id="theme-icon-sun" class="hidden w-5 h-5"></i>
                     <i data-lucide="moon" id="theme-icon-moon" class="hidden w-5 h-5"></i>
                 </button>
-                <button onclick="handleLogout()" type="button" title="ออกจากระบบ" class="text-gray-500 dark:text-gray-400 hover:bg-red-100 dark:hover:bg-red-900/40 hover:text-red-600 dark:hover:text-red-400 rounded-lg text-sm p-2.5">
-                    <i data-lucide="log-out" class="w-5 h-5"></i>
-                </button>
             </div>
         </header>
+
+        <!-- Session info bar -->
+        <div class="bg-sky-100 dark:bg-gray-800 rounded-lg px-4 py-2 mb-6 flex flex-wrap items-center justify-between gap-2 text-sm">
+            <span class="text-sky-800 dark:text-sky-200">
+                <i data-lucide="user" class="w-4 h-4 inline-block -mt-1"></i>
+                อาจารย์: <b id="session-teacher-label"></b> &nbsp;|&nbsp;
+                ห้อง: <b id="session-classroom-label"></b> &nbsp;|&nbsp;
+                วิชา: <b id="session-subject-label"></b>
+            </span>
+            <button onclick="changeSession()" class="text-sky-700 dark:text-sky-300 hover:underline font-medium">เปลี่ยน</button>
+        </div>
 
         <!-- Dynamic Content Area -->
         <main id="main-content">
@@ -144,49 +194,87 @@
     </div>
 
     <!-- Modals -->
-    <div id="setup-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50"><div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 sm:p-8 max-w-lg w-full"><h2 class="text-2xl font-bold mb-4">ตั้งค่าระบบครั้งแรก</h2><p class="text-gray-600 dark:text-gray-400 mb-6">https://script.google.com/macros/s/AKfycbzRCk-FbGOGXPWcZH7vtZxM4gWVBafbGye6GHDmGbuHoEMizPyIOe9ve-QAs05sLOUrOw/exec</p><label for="gas-url" class="block font-medium mb-2">Google Apps Script URL:</label><input type="url" id="gas-url" placeholder="https://script.google.com/macros/s/..." class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg p-3"><button onclick="saveGasUrl()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg mt-8 hover:bg-blue-700">บันทึกและเริ่มต้นใช้งาน</button></div></div>
-
-    <!-- Teacher Login Screen -->
-    <div id="login-screen" class="fixed inset-0 bg-gray-100 dark:bg-gray-900 flex items-center justify-center p-4 z-40 hidden">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 sm:p-8 max-w-sm w-full">
-            <div class="flex flex-col items-center mb-6 text-center">
-                <i data-lucide="scan-face" class="text-blue-600 w-10 h-10 mb-2"></i>
-                <h1 class="text-lg font-bold text-gray-700 dark:text-gray-200">ระบบเช็คชื่อนักเรียนอัจฉริยะ</h1>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">เข้าสู่ระบบสำหรับครูผู้สอน</p>
-            </div>
-            <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
-                <div>
-                    <label for="login-username" class="block font-medium mb-1 text-sm">ชื่อผู้ใช้</label>
-                    <input type="text" id="login-username" autocomplete="username" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg p-3" required>
-                </div>
-                <div>
-                    <label for="login-password" class="block font-medium mb-1 text-sm">รหัสผ่าน</label>
-                    <input type="password" id="login-password" autocomplete="current-password" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg p-3" required>
-                </div>
-                <div class="flex items-center">
-                    <input type="checkbox" id="login-remember" class="rounded border-gray-300 dark:border-gray-600 mr-2" checked>
-                    <label for="login-remember" class="text-sm text-gray-600 dark:text-gray-400">จดจำการเข้าสู่ระบบไว้ในเครื่องนี้</label>
-                </div>
-                <p id="login-error" class="text-sm text-red-600 dark:text-red-400 hidden"></p>
-                <button type="submit" id="login-submit-btn" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2">
-                    <span>เข้าสู่ระบบ</span>
-                </button>
-            </form>
-            <button onclick="document.getElementById('setup-modal').style.display='flex'" type="button" class="w-full text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 mt-5 underline">ตั้งค่า Google Apps Script URL ใหม่</button>
-        </div>
-    </div>
     <div id="student-modal" class="fixed inset-0 bg-gray-800 bg-opacity-70 flex items-center justify-center p-4 z-40 hidden"><div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 md:p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar"><h2 id="modal-title" class="text-2xl font-bold mb-6">เพิ่มข้อมูลนักเรียน</h2><form id="student-form" onsubmit="handleStudentFormSubmit(event)"><input type="hidden" id="student-row-index"><div class="grid grid-cols-1 md:grid-cols-2 gap-6"><div><label for="student-id" class="block font-medium mb-2">รหัสนักเรียน</label><input type="text" id="student-id" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg p-3" required><label for="student-name" class="block font-medium mb-2 mt-4">ชื่อ-สกุล</label><input type="text" id="student-name" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg p-3" required><label for="student-class" class="block font-medium mb-2 mt-4">ชั้นเรียน</label><input type="text" id="student-class" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg p-3" required></div><div class="flex flex-col"><div class="flex border-b border-gray-200 dark:border-gray-700 mb-4"><button type="button" id="tab-btn-camera" onclick="switchImageInput('camera')" class="flex-1 py-2 text-center font-medium border-b-2 border-blue-600 text-blue-600">ถ่ายภาพ</button><button type="button" id="tab-btn-upload" onclick="switchImageInput('upload')" class="flex-1 py-2 text-center font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">อัปโหลด</button></div><div id="input-camera" class="flex flex-col items-center"><div class="w-full max-w-xs mx-auto aspect-[4/3] bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden relative"><video id="capture-video" class="w-full h-full object-cover" autoplay playsinline></video><canvas id="capture-canvas" class="hidden"></canvas></div><button type="button" onclick="capturePhoto()" class="bg-indigo-600 text-white px-4 py-2 mt-4 rounded-lg hover:bg-indigo-700 w-full max-w-xs">ถ่ายภาพ</button></div><div id="input-upload" class="hidden flex flex-col items-center"><div class="w-full max-w-xs mx-auto aspect-[4/3] bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center"><img id="image-preview" src="" class="w-full h-full object-cover hidden"></div><input type="file" id="image-upload-input" accept="image/*" class="hidden"><button type="button" onclick="document.getElementById('image-upload-input').click()" class="bg-indigo-600 text-white px-4 py-2 mt-4 rounded-lg hover:bg-indigo-700 w-full max-w-xs">เลือกไฟล์รูปภาพ</button></div><input type="hidden" id="student-image-data"></div></div><div class="flex justify-end space-x-4 mt-8"><button type="button" onclick="closeStudentModal()" class="bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-300 px-6 py-2 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">ยกเลิก</button><button type="submit" id="form-submit-btn" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">บันทึก</button></div></form></div></div>
 
     <script>
         // --- GLOBAL STATE & CONFIG ---
-        const GAS_URL_KEY = 'gasWebAppUrl';
-        const TEACHER_SESSION_KEY = 'currentTeacherSession';
-        let gasWebAppUrl = '', faceMatcher = null, pieChart, barChart;
+        const gasWebAppUrl = 'https://script.google.com/macros/s/AKfycbwO-J9lL0WwbWGGbD9v1oGVammWExJpjYTvZBTs4MUA0ZlWnyjceRYSqvi6G2Ncmtmhvg/exec';
+        let faceMatcher = null, pieChart, barChart;
         let students = [], attendance = [], checkedInToday = new Map();
         let isScanning = false, captureStream = null;
         let recognitionInterval = null; 
         let currentGeoLocation = null;
-        let currentTeacher = null;
+
+        // --- TEACHER / CLASSROOM / SUBJECT SESSION ---
+        const TEACHERS_BY_DEPT = {
+            "แผนกวิชาสามัญ": [
+                        "อาจารย์อารยา อินชัน",
+                        "อาจารย์บุญเชิด บุญธรรม",
+                        "อาจารย์พนารัตน์ รำขวัญ",
+                        "อาจารย์ณิชชัยกุญช์ โลราช",
+                        "อาจารย์กฤษณ์ชาณัฎฐ์ ผดุงรัตน์",
+                        "อาจารย์ทิพรัตน์ วรรณเสถียร์",
+                        "อาจารย์รัญชนา แก้วเทพ",
+                        "อาจารย์ศิวพร แพงผม",
+                        "อาจารย์ปนัดดา อยู่รอง",
+                        "อาจารย์ธีระพัฒน์ ด้วงแพง"
+            ],
+            "แผนกวิชาบัญชี ตลาดและธุรกิจค้าปลีก": [
+                        "อาจารย์วชิราภรณ์ ธีปะนะ",
+                        "อาจารย์อรวรรณ สุดกล้า",
+                        "อาจารย์ขวัญดาว จันมลฑา",
+                        "อาจารย์สายฝน กะแก้ว",
+                        "อาจารย์จินตนา เตชัย",
+                        "อาจารย์กวิสรา ศรีแก้ว",
+                        "อาจารย์สรวิชญ์ เงินดวง",
+                        "อาจารย์เสาวลักษณ์ ปานคำ"
+            ],
+            "แผนกวิชาคอมพิวเตอร์ธุรกิจ": [
+                        "อาจารย์อัมพร เสือเดช",
+                        "อาจารย์ณิชานันท์ พิพัฒน์นพกร",
+                        "อาจารย์ชนินทร์ พงษ์ประดิษฐ์",
+                        "อาจารย์ขนิษฐา นันทโชติ",
+                        "อาจารย์ปิยะ สีตาชัย",
+                        "อาจารย์กุลธิดา สายบุญยงค์",
+                        "อาจารย์สุพัตรา จันทร์น้ำอ่าง",
+                        "อาจารย์ศศิวิมล ถันชนนาง",
+                        "อาจารย์ภานุพงศ์ ปันสอน"
+            ],
+            "แผนกวิชาช่างยนต์": [
+                        "อาจารย์จักรพงษ์ แจ้งเมือง",
+                        "อาจารย์ณรงค์ บุญพักตร์",
+                        "อาจารย์ประชา กัลปนารถ",
+                        "อาจารย์ไตรภพ ศรีสุวรรณ",
+                        "อาจารย์อนิรุทธ์ กรูดไคร้",
+                        "อาจารย์ภูวดล เพ็ญนาดี",
+                        "อาจารย์เด่นพงษ์ ไทยแป้น",
+                        "อาจารย์พงษ์พันธ์ แทนเทือก",
+                        "อาจารย์เพชรรัตน์ ดวงแก้ว",
+                        "อาจารย์เผด็จ พึ่งพิณ",
+                        "อาจารย์ปคุณวศินท์ เชียงชู",
+                        "อาจารย์สุเมธ ไชยวงค์",
+                        "อาจารย์อภิลักษณ์ แซ่ตั้น"
+            ],
+            "แผนกวิชาช่างไฟฟ้าและอิเล็กทรอนิกส์": [
+                        "อาจารย์ภูวดล จารุชาต",
+                        "อาจารย์ชัยทัต นาคเหล็ก",
+                        "อาจารย์ทนงศักดิ์ พรมงาม",
+                        "อาจารย์วรุจิรา เลี้ยงไกรลาศ",
+                        "อาจารย์ชวลิต โพธิ์สุข",
+                        "อาจารย์โยธิน แก่งอิน",
+                        "อาจารย์ชัชชลัย บุญทารมณ์",
+                        "อาจารย์ภานุวัฒน์ จันต๊ะภา",
+                        "อาจารย์ศิริพัฒน์ สุริยะวงค์",
+                        "อาจารย์บุญตาล ทองแห้ว",
+                        "อาจารย์วัฒนา คำมงคล",
+                        "อาจารย์เมธาสิทธิ์ ใสยิ่ง",
+                        "อาจารย์วิภาวรรณ เฟื้องฟู"
+            ]
+};
+        let classroomsList = [], subjectsList = [];
+        let selectedTeacher = localStorage.getItem('selectedTeacher') || null;
+        let selectedClassroom = localStorage.getItem('selectedClassroom') || null;
+        let selectedSubject = localStorage.getItem('selectedSubject') || null;
         
         // --- THEME ---
         function applyTheme(theme) {
@@ -216,18 +304,161 @@
             lucide.createIcons();
             const savedTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
             applyTheme(savedTheme);
-            gasWebAppUrl = localStorage.getItem(GAS_URL_KEY);
-            if (!gasWebAppUrl) {
-                document.getElementById('setup-modal').style.display = 'flex';
-            } else {
-                document.getElementById('setup-modal').style.display = 'none';
-                await checkLoginSession();
+
+            // Copy the embedded logo into the header without re-embedding it
+            const logoSrc = document.querySelector('#screen-teacher img').src;
+            document.getElementById('header-logo').src = logoSrc;
+
+            if (!selectedTeacher) {
+                renderTeacherScreen();
+                return;
             }
+            if (!selectedClassroom || !selectedSubject) {
+                showClassroomSubjectScreen();
+                return;
+            }
+            await enterMainApp();
+        };
+
+        async function enterMainApp() {
+            document.getElementById('screen-teacher').classList.add('hidden');
+            document.getElementById('screen-classroom-subject').classList.add('hidden');
+            document.getElementById('app-main').classList.remove('hidden');
+            updateSessionLabels();
+            await initializeApp();
             getLocation();
             document.getElementById('dashboard-date').valueAsDate = new Date();
             document.getElementById('dashboard-date').addEventListener('change', () => { loadAttendanceDataForDashboard(); });
             document.getElementById('image-upload-input').addEventListener('change', handleImageUpload);
-        };
+        }
+
+        function updateSessionLabels() {
+            document.getElementById('session-teacher-label').innerText = selectedTeacher || '-';
+            document.getElementById('session-classroom-label').innerText = selectedClassroom || '-';
+            document.getElementById('session-subject-label').innerText = selectedSubject || '-';
+        }
+
+        function changeSession() {
+            localStorage.removeItem('selectedTeacher');
+            localStorage.removeItem('selectedClassroom');
+            localStorage.removeItem('selectedSubject');
+            location.reload();
+        }
+
+        // --- SCREEN 1: SELECT TEACHER ---
+        function renderTeacherScreen() {
+            const container = document.getElementById('teacher-groups');
+            container.innerHTML = '';
+            Object.keys(TEACHERS_BY_DEPT).forEach(dept => {
+                const section = document.createElement('div');
+                const heading = document.createElement('h3');
+                heading.className = 'font-semibold text-sky-700 mb-2 text-sm';
+                heading.innerText = dept;
+                const grid = document.createElement('div');
+                grid.className = 'grid grid-cols-2 sm:grid-cols-3 gap-2';
+                TEACHERS_BY_DEPT[dept].forEach(name => {
+                    const btn = document.createElement('button');
+                    btn.className = 'bg-sky-600 hover:bg-sky-700 text-white text-sm py-2.5 px-2 rounded-lg transition-colors truncate';
+                    btn.innerText = name;
+                    btn.onclick = () => selectTeacher(name);
+                    grid.appendChild(btn);
+                });
+                section.appendChild(heading);
+                section.appendChild(grid);
+                container.appendChild(section);
+            });
+            document.getElementById('screen-teacher').classList.remove('hidden');
+            document.getElementById('screen-classroom-subject').classList.add('hidden');
+            document.getElementById('app-main').classList.add('hidden');
+        }
+
+        function selectTeacher(name) {
+            selectedTeacher = name;
+            localStorage.setItem('selectedTeacher', name);
+            showClassroomSubjectScreen();
+        }
+
+        function backToTeacherScreen() {
+            selectedTeacher = null;
+            localStorage.removeItem('selectedTeacher');
+            renderTeacherScreen();
+        }
+
+        // --- SCREEN 2: SELECT CLASSROOM & SUBJECT ---
+        async function showClassroomSubjectScreen() {
+            document.getElementById('screen-teacher').classList.add('hidden');
+            document.getElementById('screen-classroom-subject').classList.remove('hidden');
+            document.getElementById('app-main').classList.add('hidden');
+            document.getElementById('cs-teacher-label').innerText = 'อาจารย์: ' + selectedTeacher;
+            lucide.createIcons();
+            await loadClassroomsAndSubjects();
+        }
+
+        async function loadClassroomsAndSubjects() {
+            const [classroomRes, subjectRes] = await Promise.all([
+                apiCall({ action: 'getClassrooms' }),
+                apiCall({ action: 'getSubjects' })
+            ]);
+            classroomsList = classroomRes.success ? classroomRes.data : [];
+            subjectsList = subjectRes.success ? subjectRes.data : [];
+            renderClassroomGrid();
+            renderSubjectGrid();
+        }
+
+        function renderClassroomGrid() {
+            const grid = document.getElementById('classroom-grid');
+            const empty = document.getElementById('classroom-empty');
+            grid.innerHTML = '';
+            empty.classList.toggle('hidden', classroomsList.length > 0);
+            classroomsList.forEach(name => {
+                const btn = document.createElement('button');
+                const isSelected = selectedClassroom === name;
+                btn.className = `text-sm py-2 px-2 rounded-lg transition-colors truncate ${isSelected ? 'bg-sky-600 text-white' : 'bg-sky-50 text-sky-800 hover:bg-sky-100 border border-sky-200'}`;
+                btn.innerText = name;
+                btn.onclick = () => { selectedClassroom = name; renderClassroomGrid(); updateConfirmButton(); };
+                grid.appendChild(btn);
+            });
+        }
+
+        function renderSubjectGrid() {
+            const grid = document.getElementById('subject-grid');
+            const empty = document.getElementById('subject-empty');
+            grid.innerHTML = '';
+            empty.classList.toggle('hidden', subjectsList.length > 0);
+            subjectsList.forEach(name => {
+                const btn = document.createElement('button');
+                const isSelected = selectedSubject === name;
+                btn.className = `text-sm py-2 px-2 rounded-lg transition-colors truncate ${isSelected ? 'bg-sky-600 text-white' : 'bg-sky-50 text-sky-800 hover:bg-sky-100 border border-sky-200'}`;
+                btn.innerText = name;
+                btn.onclick = () => { selectedSubject = name; renderSubjectGrid(); updateConfirmButton(); };
+                grid.appendChild(btn);
+            });
+        }
+
+        function updateConfirmButton() {
+            document.getElementById('confirm-cs-btn').disabled = !(selectedClassroom && selectedSubject);
+        }
+
+        async function promptAddClassroom() {
+            const name = prompt('กรอกชื่อห้องเรียนใหม่ (เช่น ปวช.1/1):');
+            if (!name || !name.trim()) return;
+            const response = await apiCall({ action: 'addClassroom', data: { name: name.trim() } });
+            if (response.success) { await loadClassroomsAndSubjects(); } else { alert('เกิดข้อผิดพลาด: ' + response.error); }
+        }
+
+        async function promptAddSubject() {
+            const name = prompt('กรอกชื่อวิชาใหม่:');
+            if (!name || !name.trim()) return;
+            const response = await apiCall({ action: 'addSubject', data: { name: name.trim() } });
+            if (response.success) { await loadClassroomsAndSubjects(); } else { alert('เกิดข้อผิดพลาด: ' + response.error); }
+        }
+
+        function confirmClassroomSubject() {
+            if (!selectedClassroom || !selectedSubject) return;
+            localStorage.setItem('selectedClassroom', selectedClassroom);
+            localStorage.setItem('selectedSubject', selectedSubject);
+            enterMainApp();
+        }
 
         async function initializeApp() {
             try {
@@ -250,83 +481,6 @@
             switchTab('dashboard');
         }
 
-        function saveGasUrl() {
-            const url = document.getElementById('gas-url').value.trim();
-            if (url) {
-                localStorage.setItem(GAS_URL_KEY, url);
-                gasWebAppUrl = url;
-                document.getElementById('setup-modal').style.display = 'none';
-                checkLoginSession();
-            } else {
-                alert('กรุณากรอก URL ให้ถูกต้อง');
-            }
-        }
-
-        // --- TEACHER LOGIN / SESSION ---
-        async function checkLoginSession() {
-            const saved = localStorage.getItem(TEACHER_SESSION_KEY) || sessionStorage.getItem(TEACHER_SESSION_KEY);
-            if (saved) {
-                try {
-                    currentTeacher = JSON.parse(saved);
-                    await enterApp();
-                    return;
-                } catch (e) { /* fall through to login screen */ }
-            }
-            document.getElementById('app-shell').classList.add('hidden');
-            document.getElementById('login-screen').classList.remove('hidden');
-            lucide.createIcons();
-        }
-
-        async function handleLogin(event) {
-            event.preventDefault();
-            const username = document.getElementById('login-username').value.trim();
-            const password = document.getElementById('login-password').value;
-            const remember = document.getElementById('login-remember').checked;
-            const errorEl = document.getElementById('login-error');
-            const submitBtn = document.getElementById('login-submit-btn');
-            errorEl.classList.add('hidden');
-            submitBtn.disabled = true;
-            submitBtn.innerText = 'กำลังตรวจสอบ...';
-
-            const response = await apiCall({ action: 'login', data: { username, password } });
-
-            submitBtn.disabled = false;
-            submitBtn.innerText = 'เข้าสู่ระบบ';
-
-            if (response.success) {
-                currentTeacher = { username: response.data.username, fullname: response.data.fullname || response.data.username };
-                const sessionData = JSON.stringify(currentTeacher);
-                if (remember) {
-                    localStorage.setItem(TEACHER_SESSION_KEY, sessionData);
-                } else {
-                    sessionStorage.setItem(TEACHER_SESSION_KEY, sessionData);
-                }
-                document.getElementById('login-form').reset();
-                await enterApp();
-            } else {
-                errorEl.innerText = response.error || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';
-                errorEl.classList.remove('hidden');
-            }
-        }
-
-        async function enterApp() {
-            document.getElementById('login-screen').classList.add('hidden');
-            document.getElementById('app-shell').classList.remove('hidden');
-            document.getElementById('current-teacher-name').innerText = currentTeacher.fullname;
-            lucide.createIcons();
-            await initializeApp();
-        }
-
-        function handleLogout() {
-            if (!confirm('ต้องการออกจากระบบใช่หรือไม่?')) return;
-            localStorage.removeItem(TEACHER_SESSION_KEY);
-            sessionStorage.removeItem(TEACHER_SESSION_KEY);
-            currentTeacher = null;
-            stopScanning(false);
-            stopCaptureVideo();
-            location.reload();
-        }
-        
         // --- UI & NAVIGATION ---
         function switchTab(tabName) {
             stopCaptureVideo(); 
@@ -437,7 +591,7 @@
         function markStatus(studentId, status) {
             const student = students.find(s => s.studentid === studentId);
             if (!student) return;
-            const record = { id: student.studentid, name: student.name, class: student.class, timestamp: new Date().toISOString(), location: currentGeoLocation ? `${currentGeoLocation.lat},${currentGeoLocation.lng}` : 'N/A', status: status };
+            const record = { id: student.studentid, name: student.name, class: student.class, timestamp: new Date().toISOString(), location: currentGeoLocation ? `${currentGeoLocation.lat},${currentGeoLocation.lng}` : 'N/A', status: status, teacher: selectedTeacher, subject: selectedSubject };
             checkedInToday.set(studentId, record);
             const buttonContainer = document.getElementById(`status-buttons-${studentId}`);
             if (buttonContainer) {
@@ -454,7 +608,7 @@
                 if (checkedInToday.has(student.studentid)) {
                     recordsToSave.push(checkedInToday.get(student.studentid));
                 } else {
-                    const absentRecord = { id: student.studentid, name: student.name, class: student.class, timestamp, location, status: 'ขาด' };
+                    const absentRecord = { id: student.studentid, name: student.name, class: student.class, timestamp, location, status: 'ขาด', teacher: selectedTeacher, subject: selectedSubject };
                     recordsToSave.push(absentRecord);
                 }
             });
@@ -524,7 +678,7 @@
         async function loadStudentDataForRecognition() {
             const response = await apiCall({ action: 'getStudents' });
             if (response.success && response.data.length > 0) {
-                students = response.data;
+                students = selectedClassroom ? response.data.filter(s => s.class === selectedClassroom) : response.data;
                 const labeledFaceDescriptors = await Promise.all(students.map(async (student) => {
                     if (student.imagedatabase64 && student.imagedatabase64.startsWith('data:image')) {
                         try {
@@ -542,7 +696,7 @@
         }
         
         function handleRecognition(student) {
-            const record = { id: student.studentid, name: student.name, class: student.class, timestamp: new Date().toISOString(), location: currentGeoLocation ? `${currentGeoLocation.lat},${currentGeoLocation.lng}` : 'N/A', status: 'มาเรียน' };
+            const record = { id: student.studentid, name: student.name, class: student.class, timestamp: new Date().toISOString(), location: currentGeoLocation ? `${currentGeoLocation.lat},${currentGeoLocation.lng}` : 'N/A', status: 'มาเรียน', teacher: selectedTeacher, subject: selectedSubject };
             checkedInToday.set(student.studentid, record);
             
             const successOverlay = document.getElementById('scan-success-overlay');
