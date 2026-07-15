@@ -36,6 +36,8 @@
         .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; }
         .animate-fade-in { animation: fadeIn 0.5s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        /* กลับด้านภาพกล้อง (แนวกระจก) ให้ซ้าย-ขวาตรงกับที่คนยืนจริง เดินซ้ายก็เห็นซ้าย เดินขวาก็เห็นขวา */
+        .mirrored-feed { transform: scaleX(-1); }
     </style>
 </head>
 <body class="bg-sky-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300">
@@ -60,7 +62,7 @@
         <header class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-3 flex flex-col sm:flex-row justify-between items-center gap-4">
              <div class="flex items-center space-x-3">
                 <img id="header-logo" src="" class="w-8 h-8 object-contain" alt="โลโก้">
-                <h1 class="text-xl md:text-2xl font-bold text-gray-700 dark:text-gray-200">ระบบเช็คชื่อด้วยเทคโนโลยีใบหน้า</h1>
+                <h1 class="text-xl md:text-2xl font-bold text-gray-700 dark:text-gray-200">ระบบเช็คชื่อนักเรียนอัจฉริยะ</h1>
             </div>
             <div class="flex items-center gap-2">
                 <nav class="flex items-center flex-wrap justify-center space-x-1 md:space-x-2 bg-sky-50 dark:bg-gray-700 p-1 rounded-lg">
@@ -150,10 +152,12 @@
                             <p id="video-loading-text" class="mt-4 text-gray-600 dark:text-gray-400">กำลังเปิดกล้อง...</p>
                         </div>
                         <div class="w-full max-w-4xl mx-auto bg-black rounded-lg overflow-hidden relative aspect-video hidden" id="video-wrapper">
-                            <video id="video" class="w-full h-full" autoplay muted playsinline></video>
-                            <canvas id="overlay" class="absolute top-0 left-0"></canvas>
-                            <div id="scan-success-overlay" class="absolute inset-0 bg-green-900 bg-opacity-70 text-white text-2xl font-bold flex items-center justify-center hidden animate-fade-in">
-                                <span id="scan-success-name"></span>&nbsp;เช็คชื่อสำเร็จ!
+                            <video id="video" class="w-full h-full mirrored-feed" autoplay muted playsinline></video>
+                            <canvas id="overlay" class="absolute top-0 left-0 mirrored-feed"></canvas>
+                            <div id="scan-success-overlay" class="absolute inset-0 bg-green-900 bg-opacity-80 text-white flex flex-col items-center justify-center hidden animate-fade-in text-center px-4">
+                                <span id="scan-success-name" class="text-3xl font-bold"></span>
+                                <span>&nbsp;เช็คชื่อสำเร็จ!</span>
+                                <span id="scan-success-status" class="block text-lg font-semibold text-green-300 mt-1"></span>
                             </div>
                         </div>
                     </div>
@@ -176,7 +180,7 @@
 
             <!-- Manage Students Tab -->
             <div id="content-manage" class="hidden">
-                 <div class="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md"><div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-2"><h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300">จัดการข้อมูลนักเรียน</h2><div class="flex items-center gap-2 w-full sm:w-auto"><button onclick="document.getElementById('import-file-input').click()" class="bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-2 rounded-lg hover:bg-emerald-100 flex items-center space-x-2 flex-1 sm:flex-none justify-center"><i data-lucide="upload"></i><span>นำเข้าข้อมูล (CSV/Excel)</span></button><input type="file" id="import-file-input" accept=".csv,.xlsx,.xls" class="hidden"><button onclick="openStudentModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2 flex-1 sm:flex-none justify-center"><i data-lucide="user-plus"></i><span>เพิ่มนักเรียน</span></button></div></div><div class="overflow-x-auto"><table class="w-full text-left min-w-[600px]"><thead class="bg-gray-50 dark:bg-gray-700/50"><tr><th class="p-3">รหัสนักเรียน</th><th class="p-3">ชื่อ-สกุล</th><th class="p-3">ชั้นเรียน</th><th class="p-3 text-center">จัดการ</th></tr></thead><tbody id="student-table-body" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody></table></div></div>
+                 <div class="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md"><div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-2"><h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300">จัดการข้อมูลนักเรียน</h2><div class="flex items-center gap-2 w-full sm:w-auto"><button onclick="document.getElementById('import-file-input').click()" class="bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-2 rounded-lg hover:bg-emerald-100 flex items-center space-x-2 flex-1 sm:flex-none justify-center"><i data-lucide="upload"></i><span>นำเข้าข้อมูล (CSV/Excel)</span></button><input type="file" id="import-file-input" accept=".csv,.xlsx,.xls" class="hidden"><button onclick="openStudentModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2 flex-1 sm:flex-none justify-center"><i data-lucide="user-plus"></i><span>เพิ่มนักเรียน</span></button></div></div><div class="overflow-x-auto"><table class="w-full text-left min-w-[700px] text-base"><thead class="bg-gray-50 dark:bg-gray-700/50"><tr><th class="p-3">รหัสนักเรียน</th><th class="p-3">ชื่อ-สกุล</th><th class="p-3">ชั้นเรียน</th><th class="p-3 text-center">บันทึกลาวันนี้</th><th class="p-3 text-center">จัดการ</th></tr></thead><tbody id="student-table-body" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody></table></div></div>
             </div>
         </main>
     </div>
@@ -189,6 +193,41 @@
         const gasWebAppUrl = 'https://script.google.com/macros/s/AKfycbwO-J9lL0WwbWGGbD9v1oGVammWExJpjYTvZBTs4MUA0ZlWnyjceRYSqvi6G2Ncmtmhvg/exec';
         let faceMatcher = null, pieChart, barChart;
         let students = [], attendance = [], checkedInToday = new Map();
+
+        // ตารางคาบเรียน: คาบเริ่มกี่โมง และเกินกี่นาทีถึงถือว่า "สาย" (เผื่อเวลา 15 นาทีทุกคาบ)
+        // คาบ 8 เลิกเรียน 16:10 (สั้นกว่าคาบอื่น)
+        const CLASS_PERIODS = [
+            { period: 1, start: '08:30' },
+            { period: 2, start: '09:30' },
+            { period: 3, start: '10:30' },
+            { period: 4, start: '11:30' },
+            { period: 5, start: '12:30' },
+            { period: 6, start: '13:30' },
+            { period: 7, start: '14:30' },
+            { period: 8, start: '15:30', end: '16:10' }
+        ];
+        const LATE_GRACE_MINUTES = 15;
+
+        function timeStrToMinutes(hhmm) {
+            const [h, m] = hhmm.split(':').map(Number);
+            return h * 60 + m;
+        }
+
+        // คืนค่า { period, status } โดย status เป็น 'มาเรียน' หรือ 'สาย' ตามเวลาที่สแกน เทียบกับตารางคาบเรียน
+        function getPeriodAndStatus(date) {
+            const nowMin = date.getHours() * 60 + date.getMinutes();
+            for (let i = 0; i < CLASS_PERIODS.length; i++) {
+                const p = CLASS_PERIODS[i];
+                const startMin = timeStrToMinutes(p.start);
+                const endMin = p.end ? timeStrToMinutes(p.end) : (i < CLASS_PERIODS.length - 1 ? timeStrToMinutes(CLASS_PERIODS[i + 1].start) : startMin + 60);
+                if (nowMin >= startMin && nowMin < endMin) {
+                    const lateCutoff = startMin + LATE_GRACE_MINUTES;
+                    return { period: p.period, status: nowMin > lateCutoff ? 'สาย' : 'มาเรียน' };
+                }
+            }
+            // นอกช่วงคาบเรียนทั้งหมด (มาก่อน 08:30 หรือหลัง 16:10) ถือว่ามาเรียนตามปกติ ไม่ระบุคาบ
+            return { period: '', status: 'มาเรียน' };
+        }
         let isScanning = false, captureStream = null;
         let recognitionInterval = null; 
         let currentGeoLocation = null;
@@ -529,7 +568,7 @@
         function stopScanning(showStudentList = true) {
             isScanning = false;
             if (recognitionInterval) {
-                clearInterval(recognitionInterval);
+                clearTimeout(recognitionInterval);
                 recognitionInterval = null;
             }
 
@@ -642,25 +681,38 @@
             const displaySize = { width: video.clientWidth, height: video.clientHeight };
             faceapi.matchDimensions(overlay, displaySize);
 
-            if (recognitionInterval) clearInterval(recognitionInterval);
-            recognitionInterval = setInterval(async () => {
+            if (recognitionInterval) clearTimeout(recognitionInterval);
+
+            // ใช้ setTimeout วนซ้ำ (ไม่ใช่ setInterval) เพื่อไม่ให้รอบตรวจจับใบหน้าซ้อนทับกัน
+            // ถ้ารอบตรวจจับหนึ่งครั้งใช้เวลานานกว่า 300ms ของเดิม รอบถัดไปจะไม่ยิงซ้ำจนกว่ารอบก่อนจะเสร็จ
+            // ทำให้ตอนกด "สิ้นสุดการเช็คชื่อ" หยุดได้เกือบทันที ไม่ต้องรอคิวที่สะสมไว้ (แก้ปัญหาหน่วง 3-6 วินาที)
+            async function recognitionLoop() {
                 if (!isScanning) return;
-                const detections = await faceapi.detectAllFaces(video).withFaceLandmarks().withFaceDescriptors();
-                const resizedDetections = faceapi.resizeResults(detections, displaySize);
-                overlay.getContext('2d').clearRect(0, 0, overlay.width, overlay.height);
-                if (faceMatcher) {
-                    const results = resizedDetections.map(d => faceMatcher.findBestMatch(d.descriptor));
-                    results.forEach((result, i) => {
-                        const box = resizedDetections[i].detection.box;
-                         const drawBox = new faceapi.draw.DrawBox(box, { label: result.toString() });
-                        drawBox.draw(overlay);
-                        const student = students.find(s => s.name === result.label);
-                        if (student && !checkedInToday.has(student.studentid)) {
-                             handleRecognition(student);
-                        }
-                    });
+                try {
+                    const detections = await faceapi.detectAllFaces(video).withFaceLandmarks().withFaceDescriptors();
+                    if (!isScanning) return; // เช็คซ้ำเผื่อผู้ใช้กดหยุดระหว่างกำลังประมวลผลอยู่
+                    const resizedDetections = faceapi.resizeResults(detections, displaySize);
+                    overlay.getContext('2d').clearRect(0, 0, overlay.width, overlay.height);
+                    if (faceMatcher) {
+                        const results = resizedDetections.map(d => faceMatcher.findBestMatch(d.descriptor));
+                        results.forEach((result, i) => {
+                            const box = resizedDetections[i].detection.box;
+                            const drawBox = new faceapi.draw.DrawBox(box, { label: result.toString() });
+                            drawBox.draw(overlay);
+                            const student = students.find(s => s.name === result.label);
+                            if (student && !checkedInToday.has(student.studentid)) {
+                                handleRecognition(student);
+                            }
+                        });
+                    }
+                } catch (e) {
+                    console.error('recognition loop error:', e);
                 }
-            }, 300);
+                if (isScanning) {
+                    recognitionInterval = setTimeout(recognitionLoop, 300);
+                }
+            }
+            recognitionLoop();
         }
         
         async function loadStudentDataForRecognition() {
@@ -684,17 +736,24 @@
         }
         
         function handleRecognition(student) {
-            const record = { id: student.studentid, name: student.name, class: student.class, timestamp: new Date().toISOString(), location: currentGeoLocation ? `${currentGeoLocation.lat},${currentGeoLocation.lng}` : 'N/A', status: 'มาเรียน', teacher: selectedTeacher, subject: selectedSubject };
+            const now = new Date();
+            const { period, status } = getPeriodAndStatus(now);
+            const record = { id: student.studentid, name: student.name, class: student.class, timestamp: now.toISOString(), location: currentGeoLocation ? `${currentGeoLocation.lat},${currentGeoLocation.lng}` : 'N/A', status: status, period: period, teacher: selectedTeacher, subject: selectedSubject };
             checkedInToday.set(student.studentid, record);
-            
+
             const successOverlay = document.getElementById('scan-success-overlay');
             const successName = document.getElementById('scan-success-name');
+            const successStatus = document.getElementById('scan-success-status');
             successName.innerText = student.name;
+            if (successStatus) {
+                successStatus.innerText = status === 'สาย' ? `⏰ มาสาย${period ? ' (คาบ ' + period + ')' : ''}` : `✅ มาเรียนตรงเวลา${period ? ' (คาบ ' + period + ')' : ''}`;
+                successStatus.className = status === 'สาย' ? 'block text-lg font-semibold text-yellow-300 mt-1' : 'block text-lg font-semibold text-green-300 mt-1';
+            }
             successOverlay.classList.remove('hidden');
 
             setTimeout(() => {
                 successOverlay.classList.add('hidden');
-            }, 2000);
+            }, 2500);
         }
 
         // --- STUDENT MODAL & PHOTO UPLOAD ---
@@ -806,9 +865,50 @@
                 tableBody.innerHTML = '';
                 students.forEach(student => {
                     const row = document.createElement('tr');
-                    row.innerHTML = `<td class="p-3">${student.studentid}</td><td class="p-3">${student.name}</td><td class="p-3">${student.class}</td><td class="p-3 text-center"><button onclick="editStudent(${student.rowIndex})" class="text-blue-600 p-1">แก้ไข</button><button onclick="deleteStudent(${student.rowIndex})" class="text-red-600 p-1">ลบ</button></td>`;
+                    const safeName = student.name.replace(/'/g, "\\'");
+                    row.innerHTML = `<td class="p-3">${student.studentid}</td><td class="p-3">${student.name}</td><td class="p-3">${student.class}</td>
+                        <td class="p-3">
+                            <div class="flex items-center justify-center gap-4">
+                                <label class="inline-flex items-center gap-1.5 text-base cursor-pointer select-none">
+                                    <input type="checkbox" class="w-5 h-5 accent-amber-500" onchange="markLeaveStatus('${student.studentid}', '${safeName}', '${student.class}', 'ลาป่วย', this)">
+                                    <span>ลาป่วย</span>
+                                </label>
+                                <label class="inline-flex items-center gap-1.5 text-base cursor-pointer select-none">
+                                    <input type="checkbox" class="w-5 h-5 accent-sky-500" onchange="markLeaveStatus('${student.studentid}', '${safeName}', '${student.class}', 'ลากิจ', this)">
+                                    <span>ลากิจ</span>
+                                </label>
+                            </div>
+                        </td>
+                        <td class="p-3 text-center"><button onclick="editStudent(${student.rowIndex})" class="text-blue-600 p-1 text-base">แก้ไข</button><button onclick="deleteStudent(${student.rowIndex})" class="text-red-600 p-1 text-base">ลบ</button></td>`;
                     tableBody.appendChild(row);
                  });
+            }
+        }
+
+        // ติ๊ก checkbox เพื่อบันทึกสถานะลาป่วย/ลากิจ ของนักเรียนคนนั้นสำหรับวันนี้ (ผ่าน action เดิม recordAttendance)
+        async function markLeaveStatus(id, name, className, status, checkboxEl) {
+            if (!checkboxEl.checked) return; // ไม่ลบข้อมูลอัตโนมัติเมื่อติ๊กออก ป้องกันการลบพลาด
+            if (!confirm(`ยืนยันบันทึกสถานะ "${status}" ให้ ${name} สำหรับวันนี้?`)) { checkboxEl.checked = false; return; }
+            const now = new Date();
+            const { period } = getPeriodAndStatus(now);
+            const response = await apiCall({
+                action: 'recordAttendance',
+                data: {
+                    id, name, class: className,
+                    timestamp: now.toISOString(),
+                    location: '',
+                    status: status,
+                    teacher: selectedTeacher || '',
+                    subject: selectedSubject || '',
+                    period: period
+                }
+            });
+            if (response.success) {
+                checkboxEl.disabled = true;
+                checkboxEl.closest('label').classList.add('opacity-60');
+            } else {
+                alert('เกิดข้อผิดพลาด: ' + (response.error || ''));
+                checkboxEl.checked = false;
             }
         }
 
