@@ -15,10 +15,18 @@
     
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
+
+    <!-- SheetJS: อ่านไฟล์ CSV/Excel ฝั่ง browser สำหรับฟีเจอร์นำเข้าข้อมูล -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+    <!-- Google Fonts: Sarabun (ฟอนต์ไทยอ่านง่าย ใกล้เคียง TH Sarabun New) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
     <!-- Custom styles -->
     <style>
-       body { font-family: 'Inter', 'Kanit', sans-serif; }
+       body { font-family: 'Sarabun', 'Inter', 'Kanit', sans-serif; }
         .loader { border-top-color: #3b82f6; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
         .custom-scrollbar::-webkit-scrollbar { width: 8px; }
@@ -34,49 +42,16 @@
 
     <!-- Screen 1: Select Teacher -->
     <div id="screen-teacher" class="min-h-screen flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-lg p-6 sm:p-8 max-w-3xl w-full border border-sky-100">
+        <div class="bg-white rounded-2xl shadow-sm p-6 sm:p-8 max-w-3xl w-full border border-slate-100">
             <div class="flex flex-col items-center mb-6">
                 <img src="data:image/png;base64,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" class="w-20 h-20 mb-3 object-contain" alt="โลโก้">
-                <h1 class="text-xl sm:text-2xl font-bold text-sky-800 text-center">ระบบเช็คชื่อด้วยเทคโนโลยีใบหน้า</h1>
-                <p class="text-sky-500 text-sm mt-1">กรุณาเลือกชื่ออาจารย์ผู้ใช้งาน</p>
+                <h1 class="text-xl sm:text-2xl font-semibold text-slate-700 text-center">ระบบเช็คชื่อด้วยเทคโนโลยีใบหน้า</h1>
+                <p class="text-slate-400 text-sm mt-1">กรุณาเลือกชื่ออาจารย์ผู้ใช้งาน</p>
             </div>
             <div id="teacher-groups" class="space-y-5 max-h-[65vh] overflow-y-auto custom-scrollbar pr-1"></div>
         </div>
     </div>
 
-    <!-- Screen 2: Select Classroom & Subject -->
-    <div id="screen-classroom-subject" class="hidden min-h-screen flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-lg p-6 sm:p-8 max-w-2xl w-full border border-sky-100">
-            <div class="flex items-center justify-between mb-2">
-                <button onclick="backToTeacherScreen()" class="text-sky-500 hover:text-sky-700 flex items-center gap-1 text-sm"><i data-lucide="arrow-left" class="w-4 h-4"></i>ย้อนกลับ</button>
-                <span id="cs-teacher-label" class="text-sm text-sky-600 font-medium"></span>
-            </div>
-            <div class="flex flex-col items-center mb-4">
-                <img src="data:image/png;base64,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" class="w-14 h-14 mb-2 object-contain" alt="โลโก้">
-                <h2 class="text-xl font-bold text-sky-800 text-center">เลือกห้องเรียนและวิชาที่สอน</h2>
-            </div>
-
-            <div class="mb-6">
-                <div class="flex items-center justify-between mb-3">
-                    <h3 class="font-semibold text-gray-700">ห้องเรียน</h3>
-                    <button onclick="promptAddClassroom()" class="text-sm bg-sky-100 text-sky-700 px-3 py-1.5 rounded-lg hover:bg-sky-200 flex items-center gap-1"><i data-lucide="plus" class="w-4 h-4"></i>เพิ่มห้องเรียน</button>
-                </div>
-                <div id="classroom-grid" class="grid grid-cols-3 sm:grid-cols-4 gap-2"></div>
-                <p id="classroom-empty" class="hidden text-center text-sm text-gray-400 py-3">ยังไม่มีข้อมูลห้องเรียน กดปุ่ม "เพิ่มห้องเรียน" เพื่อเริ่มเพิ่มข้อมูล</p>
-            </div>
-
-            <div class="mb-6">
-                <div class="flex items-center justify-between mb-3">
-                    <h3 class="font-semibold text-gray-700">วิชาที่สอน</h3>
-                    <button onclick="promptAddSubject()" class="text-sm bg-sky-100 text-sky-700 px-3 py-1.5 rounded-lg hover:bg-sky-200 flex items-center gap-1"><i data-lucide="plus" class="w-4 h-4"></i>เพิ่มวิชา</button>
-                </div>
-                <div id="subject-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-2"></div>
-                <p id="subject-empty" class="hidden text-center text-sm text-gray-400 py-3">ยังไม่มีข้อมูลวิชา กดปุ่ม "เพิ่มวิชา" เพื่อเริ่มเพิ่มข้อมูล</p>
-            </div>
-
-            <button id="confirm-cs-btn" onclick="confirmClassroomSubject()" disabled class="w-full bg-sky-600 disabled:bg-gray-300 text-white font-bold py-3 rounded-lg hover:bg-sky-700 transition-colors">ยืนยันและเข้าสู่ระบบ</button>
-        </div>
-    </div>
 
     <!-- Main Container -->
     <div id="app-main" class="hidden container mx-auto p-4 md:p-6">
@@ -85,7 +60,7 @@
         <header class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-3 flex flex-col sm:flex-row justify-between items-center gap-4">
              <div class="flex items-center space-x-3">
                 <img id="header-logo" src="" class="w-8 h-8 object-contain" alt="โลโก้">
-                <h1 class="text-xl md:text-2xl font-bold text-gray-700 dark:text-gray-200">ระบบเช็คชื่อนักเรียนอัจฉริยะ</h1>
+                <h1 class="text-xl md:text-2xl font-bold text-gray-700 dark:text-gray-200">ระบบเช็คชื่อด้วยเทคโนโลยีใบหน้า</h1>
             </div>
             <div class="flex items-center gap-2">
                 <nav class="flex items-center flex-wrap justify-center space-x-1 md:space-x-2 bg-sky-50 dark:bg-gray-700 p-1 rounded-lg">
@@ -97,18 +72,31 @@
                     <i data-lucide="sun" id="theme-icon-sun" class="hidden w-5 h-5"></i>
                     <i data-lucide="moon" id="theme-icon-moon" class="hidden w-5 h-5"></i>
                 </button>
+                <button onclick="changeSession()" type="button" title="ออกจากระบบ / เปลี่ยนอาจารย์" class="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-sm p-2.5">
+                    <i data-lucide="log-out" class="w-5 h-5"></i>
+                </button>
             </div>
         </header>
 
         <!-- Session info bar -->
-        <div class="bg-sky-100 dark:bg-gray-800 rounded-lg px-4 py-2 mb-6 flex flex-wrap items-center justify-between gap-2 text-sm">
-            <span class="text-sky-800 dark:text-sky-200">
+        <div class="bg-sky-50 dark:bg-gray-800 border border-sky-100 dark:border-gray-700 rounded-lg px-4 py-2 mb-3 flex flex-wrap items-center justify-between gap-2 text-sm">
+            <span class="text-sky-700 dark:text-sky-200">
                 <i data-lucide="user" class="w-4 h-4 inline-block -mt-1"></i>
                 อาจารย์: <b id="session-teacher-label"></b> &nbsp;|&nbsp;
-                ห้อง: <b id="session-classroom-label"></b> &nbsp;|&nbsp;
-                วิชา: <b id="session-subject-label"></b>
+                ห้อง: <b id="session-classroom-label">ยังไม่ได้เลือก</b> &nbsp;|&nbsp;
+                วิชา: <b id="session-subject-label">ยังไม่ได้เลือก</b>
             </span>
-            <button onclick="changeSession()" class="text-sky-700 dark:text-sky-300 hover:underline font-medium">เปลี่ยน</button>
+            <button onclick="toggleRoomPicker()" class="text-sky-600 dark:text-sky-300 hover:underline font-medium">เลือก/เปลี่ยนห้องเรียน-วิชา</button>
+        </div>
+
+        <!-- แผงเลือกห้องเรียน+วิชาที่สอน (ย้ายมาจากหน้าล็อกอินเดิม ให้เลือกได้จากในแดชบอร์ด) -->
+        <div id="room-picker-panel" class="hidden bg-white dark:bg-gray-800 border border-slate-100 dark:border-gray-700 rounded-lg p-4 mb-6">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="font-medium text-slate-600 dark:text-gray-300 text-sm">ห้องเรียนและวิชาที่สอนของฉัน <span id="room-picker-count" class="text-slate-400 font-normal">(0/6)</span></h3>
+                <button onclick="promptAddRoomSubject()" class="text-xs bg-sky-50 text-sky-600 border border-sky-100 px-2.5 py-1.5 rounded-lg hover:bg-sky-100 flex items-center gap-1"><i data-lucide="plus" class="w-3.5 h-3.5"></i>เพิ่มห้อง/วิชา</button>
+            </div>
+            <div id="room-picker-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2"></div>
+            <p id="room-picker-empty" class="hidden text-center text-sm text-slate-400 py-4">ยังไม่มีห้องเรียน/วิชาที่สอน กดปุ่ม "เพิ่มห้อง/วิชา" เพื่อเริ่มเพิ่มข้อมูล</p>
         </div>
 
         <!-- Dynamic Content Area -->
@@ -188,7 +176,7 @@
 
             <!-- Manage Students Tab -->
             <div id="content-manage" class="hidden">
-                 <div class="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md"><div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4"><h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300">จัดการข้อมูลนักเรียน</h2><button onclick="openStudentModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2 w-full sm:w-auto justify-center"><i data-lucide="user-plus"></i><span>เพิ่มนักเรียน</span></button></div><div class="overflow-x-auto"><table class="w-full text-left min-w-[600px]"><thead class="bg-gray-50 dark:bg-gray-700/50"><tr><th class="p-3">รหัสนักเรียน</th><th class="p-3">ชื่อ-สกุล</th><th class="p-3">ชั้นเรียน</th><th class="p-3 text-center">จัดการ</th></tr></thead><tbody id="student-table-body" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody></table></div></div>
+                 <div class="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md"><div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-2"><h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300">จัดการข้อมูลนักเรียน</h2><div class="flex items-center gap-2 w-full sm:w-auto"><button onclick="document.getElementById('import-file-input').click()" class="bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-2 rounded-lg hover:bg-emerald-100 flex items-center space-x-2 flex-1 sm:flex-none justify-center"><i data-lucide="upload"></i><span>นำเข้าข้อมูล (CSV/Excel)</span></button><input type="file" id="import-file-input" accept=".csv,.xlsx,.xls" class="hidden"><button onclick="openStudentModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2 flex-1 sm:flex-none justify-center"><i data-lucide="user-plus"></i><span>เพิ่มนักเรียน</span></button></div></div><div class="overflow-x-auto"><table class="w-full text-left min-w-[600px]"><thead class="bg-gray-50 dark:bg-gray-700/50"><tr><th class="p-3">รหัสนักเรียน</th><th class="p-3">ชื่อ-สกุล</th><th class="p-3">ชั้นเรียน</th><th class="p-3 text-center">จัดการ</th></tr></thead><tbody id="student-table-body" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody></table></div></div>
             </div>
         </main>
     </div>
@@ -271,7 +259,7 @@
                         "อาจารย์วิภาวรรณ เฟื้องฟู"
             ]
 };
-        let classroomsList = [], subjectsList = [];
+        let teacherSubjectsList = []; // ห้องเรียน+วิชาของอาจารย์ที่ล็อกอินอยู่ (จาก TeacherSubjects sheet)
         let selectedTeacher = localStorage.getItem('selectedTeacher') || null;
         let selectedClassroom = localStorage.getItem('selectedClassroom') || null;
         let selectedSubject = localStorage.getItem('selectedSubject') || null;
@@ -313,16 +301,11 @@
                 renderTeacherScreen();
                 return;
             }
-            if (!selectedClassroom || !selectedSubject) {
-                showClassroomSubjectScreen();
-                return;
-            }
             await enterMainApp();
         };
 
         async function enterMainApp() {
             document.getElementById('screen-teacher').classList.add('hidden');
-            document.getElementById('screen-classroom-subject').classList.add('hidden');
             document.getElementById('app-main').classList.remove('hidden');
             updateSessionLabels();
             await initializeApp();
@@ -330,15 +313,22 @@
             document.getElementById('dashboard-date').valueAsDate = new Date();
             document.getElementById('dashboard-date').addEventListener('change', () => { loadAttendanceDataForDashboard(); });
             document.getElementById('image-upload-input').addEventListener('change', handleImageUpload);
+            document.getElementById('import-file-input').addEventListener('change', handleImportFile);
+            await loadTeacherSubjects();
+            // ถ้ายังไม่เคยเลือกห้อง/วิชา ให้เปิดแผงเลือกไว้เลยตั้งแต่เข้ามาครั้งแรก
+            if (!selectedClassroom || !selectedSubject) {
+                document.getElementById('room-picker-panel').classList.remove('hidden');
+            }
         }
 
         function updateSessionLabels() {
             document.getElementById('session-teacher-label').innerText = selectedTeacher || '-';
-            document.getElementById('session-classroom-label').innerText = selectedClassroom || '-';
-            document.getElementById('session-subject-label').innerText = selectedSubject || '-';
+            document.getElementById('session-classroom-label').innerText = selectedClassroom || 'ยังไม่ได้เลือก';
+            document.getElementById('session-subject-label').innerText = selectedSubject || 'ยังไม่ได้เลือก';
         }
 
         function changeSession() {
+            if (!confirm('ต้องการออกจากระบบและกลับไปเลือกชื่ออาจารย์ใหม่หรือไม่?')) return;
             localStorage.removeItem('selectedTeacher');
             localStorage.removeItem('selectedClassroom');
             localStorage.removeItem('selectedSubject');
@@ -352,13 +342,13 @@
             Object.keys(TEACHERS_BY_DEPT).forEach(dept => {
                 const section = document.createElement('div');
                 const heading = document.createElement('h3');
-                heading.className = 'font-semibold text-sky-700 mb-2 text-sm';
+                heading.className = 'font-medium text-slate-500 mb-2 text-sm';
                 heading.innerText = dept;
                 const grid = document.createElement('div');
                 grid.className = 'grid grid-cols-2 sm:grid-cols-3 gap-2';
                 TEACHERS_BY_DEPT[dept].forEach(name => {
                     const btn = document.createElement('button');
-                    btn.className = 'bg-sky-600 hover:bg-sky-700 text-white text-sm py-2.5 px-2 rounded-lg transition-colors truncate';
+                    btn.className = 'bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-100 text-sm py-2.5 px-2 rounded-lg transition-colors truncate';
                     btn.innerText = name;
                     btn.onclick = () => selectTeacher(name);
                     grid.appendChild(btn);
@@ -368,96 +358,84 @@
                 container.appendChild(section);
             });
             document.getElementById('screen-teacher').classList.remove('hidden');
-            document.getElementById('screen-classroom-subject').classList.add('hidden');
             document.getElementById('app-main').classList.add('hidden');
         }
 
         function selectTeacher(name) {
             selectedTeacher = name;
             localStorage.setItem('selectedTeacher', name);
-            showClassroomSubjectScreen();
-        }
-
-        function backToTeacherScreen() {
-            selectedTeacher = null;
-            localStorage.removeItem('selectedTeacher');
-            renderTeacherScreen();
-        }
-
-        // --- SCREEN 2: SELECT CLASSROOM & SUBJECT ---
-        async function showClassroomSubjectScreen() {
-            document.getElementById('screen-teacher').classList.add('hidden');
-            document.getElementById('screen-classroom-subject').classList.remove('hidden');
-            document.getElementById('app-main').classList.add('hidden');
-            document.getElementById('cs-teacher-label').innerText = 'อาจารย์: ' + selectedTeacher;
-            lucide.createIcons();
-            await loadClassroomsAndSubjects();
-        }
-
-        async function loadClassroomsAndSubjects() {
-            const [classroomRes, subjectRes] = await Promise.all([
-                apiCall({ action: 'getClassrooms' }),
-                apiCall({ action: 'getSubjects' })
-            ]);
-            classroomsList = classroomRes.success ? classroomRes.data : [];
-            subjectsList = subjectRes.success ? subjectRes.data : [];
-            renderClassroomGrid();
-            renderSubjectGrid();
-        }
-
-        function renderClassroomGrid() {
-            const grid = document.getElementById('classroom-grid');
-            const empty = document.getElementById('classroom-empty');
-            grid.innerHTML = '';
-            empty.classList.toggle('hidden', classroomsList.length > 0);
-            classroomsList.forEach(name => {
-                const btn = document.createElement('button');
-                const isSelected = selectedClassroom === name;
-                btn.className = `text-sm py-2 px-2 rounded-lg transition-colors truncate ${isSelected ? 'bg-sky-600 text-white' : 'bg-sky-50 text-sky-800 hover:bg-sky-100 border border-sky-200'}`;
-                btn.innerText = name;
-                btn.onclick = () => { selectedClassroom = name; renderClassroomGrid(); updateConfirmButton(); };
-                grid.appendChild(btn);
-            });
-        }
-
-        function renderSubjectGrid() {
-            const grid = document.getElementById('subject-grid');
-            const empty = document.getElementById('subject-empty');
-            grid.innerHTML = '';
-            empty.classList.toggle('hidden', subjectsList.length > 0);
-            subjectsList.forEach(name => {
-                const btn = document.createElement('button');
-                const isSelected = selectedSubject === name;
-                btn.className = `text-sm py-2 px-2 rounded-lg transition-colors truncate ${isSelected ? 'bg-sky-600 text-white' : 'bg-sky-50 text-sky-800 hover:bg-sky-100 border border-sky-200'}`;
-                btn.innerText = name;
-                btn.onclick = () => { selectedSubject = name; renderSubjectGrid(); updateConfirmButton(); };
-                grid.appendChild(btn);
-            });
-        }
-
-        function updateConfirmButton() {
-            document.getElementById('confirm-cs-btn').disabled = !(selectedClassroom && selectedSubject);
-        }
-
-        async function promptAddClassroom() {
-            const name = prompt('กรอกชื่อห้องเรียนใหม่ (เช่น ปวช.1/1):');
-            if (!name || !name.trim()) return;
-            const response = await apiCall({ action: 'addClassroom', data: { name: name.trim() } });
-            if (response.success) { await loadClassroomsAndSubjects(); } else { alert('เกิดข้อผิดพลาด: ' + response.error); }
-        }
-
-        async function promptAddSubject() {
-            const name = prompt('กรอกชื่อวิชาใหม่:');
-            if (!name || !name.trim()) return;
-            const response = await apiCall({ action: 'addSubject', data: { name: name.trim() } });
-            if (response.success) { await loadClassroomsAndSubjects(); } else { alert('เกิดข้อผิดพลาด: ' + response.error); }
-        }
-
-        function confirmClassroomSubject() {
-            if (!selectedClassroom || !selectedSubject) return;
-            localStorage.setItem('selectedClassroom', selectedClassroom);
-            localStorage.setItem('selectedSubject', selectedSubject);
             enterMainApp();
+        }
+
+        // --- แผงเลือกห้องเรียน+วิชาที่สอน (อยู่ในแดชบอร์ด ไม่ใช่หน้าล็อกอินแยกอีกต่อไป) ---
+        async function loadTeacherSubjects() {
+            const res = await apiCall({ action: 'getTeacherSubjects' });
+            teacherSubjectsList = res.success ? res.data.filter(r => r.teacherName === selectedTeacher) : [];
+            renderRoomPicker();
+        }
+
+        function renderRoomPicker() {
+            const grid = document.getElementById('room-picker-grid');
+            const empty = document.getElementById('room-picker-empty');
+            const countEl = document.getElementById('room-picker-count');
+            grid.innerHTML = '';
+            empty.classList.toggle('hidden', teacherSubjectsList.length > 0);
+            if (countEl) countEl.innerText = `(${teacherSubjectsList.length}/6)`;
+            teacherSubjectsList.forEach(item => {
+                const wrap = document.createElement('div');
+                wrap.className = 'relative';
+                const isSelected = selectedClassroom === item.class && selectedSubject === item.subject;
+                const btn = document.createElement('button');
+                btn.className = `w-full text-left text-sm py-2 px-3 rounded-lg transition-colors truncate ${isSelected ? 'bg-sky-500 text-white' : 'bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-100'}`;
+                btn.innerHTML = `<span class="block font-medium truncate">${item.class}</span><span class="block text-xs ${isSelected ? 'text-sky-50' : 'text-sky-500'} truncate">${item.subject}</span>`;
+                btn.onclick = () => selectRoomSubject(item.class, item.subject);
+                wrap.appendChild(btn);
+
+                const delBtn = document.createElement('button');
+                delBtn.className = `absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-200 flex items-center justify-center text-xs shadow-sm`;
+                delBtn.innerHTML = '&times;';
+                delBtn.title = 'ลบรายการนี้';
+                delBtn.onclick = (e) => { e.stopPropagation(); deleteRoomSubject(item.rowIndex); };
+                wrap.appendChild(delBtn);
+
+                grid.appendChild(wrap);
+            });
+        }
+
+        function selectRoomSubject(className, subject) {
+            selectedClassroom = className;
+            selectedSubject = subject;
+            localStorage.setItem('selectedClassroom', className);
+            localStorage.setItem('selectedSubject', subject);
+            updateSessionLabels();
+            renderRoomPicker();
+            document.getElementById('room-picker-panel').classList.add('hidden');
+            // รีเฟรชข้อมูลของแท็บที่กำลังเปิดอยู่ ให้ตรงกับห้องที่เพิ่งเลือก
+            if (!document.getElementById('content-dashboard').classList.contains('hidden')) {
+                loadStudentRosterForDashboard(); loadAttendanceDataForDashboard();
+            } else if (!document.getElementById('content-attendance').classList.contains('hidden')) {
+                loadStudentDataForRecognition();
+            }
+        }
+
+        function toggleRoomPicker() {
+            document.getElementById('room-picker-panel').classList.toggle('hidden');
+        }
+
+        async function promptAddRoomSubject() {
+            if (teacherSubjectsList.length >= 6) { alert('เพิ่มได้สูงสุด 6 ห้อง/วิชาต่ออาจารย์หนึ่งคน'); return; }
+            const className = prompt('กรอกชื่อห้องเรียน (เช่น ปวช.1/1):');
+            if (!className || !className.trim()) return;
+            const subject = prompt('กรอกชื่อวิชาที่สอน:');
+            if (!subject || !subject.trim()) return;
+            const response = await apiCall({ action: 'addTeacherSubject', data: { teacherName: selectedTeacher, class: className.trim(), subject: subject.trim() } });
+            if (response.success) { await loadTeacherSubjects(); } else { alert('เกิดข้อผิดพลาด: ' + (response.error || '')); }
+        }
+
+        async function deleteRoomSubject(rowIndex) {
+            if (!confirm('ต้องการลบห้องเรียน/วิชานี้ออกจากรายการหรือไม่?')) return;
+            const response = await apiCall({ action: 'deleteTeacherSubject', data: { rowIndex } });
+            if (response.success) { await loadTeacherSubjects(); } else { alert('เกิดข้อผิดพลาด: ' + (response.error || '')); }
         }
 
         async function initializeApp() {
@@ -511,11 +489,16 @@
             const rosterGrid = document.getElementById('student-roster-grid');
             const rosterLoading = document.getElementById('roster-loading');
             rosterGrid.innerHTML = ''; rosterLoading.style.display = 'block';
+            if (!selectedClassroom) {
+                rosterGrid.innerHTML = `<p class="col-span-full text-center text-gray-500">กรุณาเลือกห้องเรียนและวิชาที่จะสอนก่อน (ปุ่ม "เลือก/เปลี่ยนห้องเรียน-วิชา" ด้านบน)</p>`;
+                rosterLoading.style.display = 'none';
+                return;
+            }
             const response = await apiCall({ action: 'getStudents' });
             if (response.success) {
-                students = response.data;
+                students = response.data.filter(s => s.class === selectedClassroom);
                 if (students.length === 0) {
-                    rosterGrid.innerHTML = `<p class="col-span-full text-center text-gray-500">ยังไม่มีข้อมูลนักเรียนในระบบ</p>`;
+                    rosterGrid.innerHTML = `<p class="col-span-full text-center text-gray-500">ยังไม่มีข้อมูลนักเรียนในห้อง ${selectedClassroom}</p>`;
                 } else {
                     students.forEach(student => {
                         const card = document.createElement('div');
@@ -530,6 +513,11 @@
 
         // --- ATTENDANCE PROCESS ---
         function startScanning() {
+            if (!selectedClassroom || !selectedSubject) {
+                alert('กรุณาเลือกห้องเรียนและวิชาที่จะสอนก่อน (ปุ่ม "เลือก/เปลี่ยนห้องเรียน-วิชา" ด้านบน)');
+                toggleRoomPicker();
+                return;
+            }
             checkedInToday.clear();
             document.getElementById('start-scan-section').classList.add('hidden');
             document.getElementById('scanning-section').classList.remove('hidden');
@@ -823,6 +811,54 @@
                  });
             }
         }
+
+        // --- นำเข้าข้อมูลนักเรียนจากไฟล์ CSV/Excel ---
+        // เปิดไฟล์จากเครื่อง -> อ่านด้วย SheetJS -> อัปโหลดเข้า Google Sheet อัตโนมัติผ่าน Apps Script
+        // หัวคอลัมน์ที่รองรับ (ไม่สนตัวพิมพ์เล็ก/ใหญ่): รหัสนักเรียน/id, ชื่อ-สกุล/name, ชั้นเรียน/class
+        // หมายเหตุ: ไฟล์นำเข้าไม่มีรูปใบหน้า ให้เข้าไปแก้ไขนักเรียนแต่ละคนเพื่อถ่าย/อัปโหลดรูปภายหลัง
+        async function handleImportFile(event) {
+            const file = event.target.files[0];
+            event.target.value = '';
+            if (!file) return;
+            try {
+                const buffer = await file.arrayBuffer();
+                const workbook = XLSX.read(buffer, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(firstSheet, { defval: '' });
+                if (rows.length === 0) { alert('ไม่พบข้อมูลในไฟล์ที่เลือก'); return; }
+
+                const pickField = (row, keys) => {
+                    for (const key of Object.keys(row)) {
+                        const normalizedKey = key.toString().trim().toLowerCase();
+                        if (keys.includes(normalizedKey)) return row[key];
+                    }
+                    return '';
+                };
+                const importRows = rows.map(row => ({
+                    id: String(pickField(row, ['รหัสนักเรียน', 'รหัส', 'id', 'studentid', 'student id'])).trim(),
+                    name: String(pickField(row, ['ชื่อ-สกุล', 'ชื่อสกุล', 'ชื่อ', 'name'])).trim(),
+                    class: String(pickField(row, ['ชั้นเรียน', 'ห้อง', 'ห้องเรียน', 'class'])).trim()
+                })).filter(r => r.id && r.name);
+
+                if (importRows.length === 0) {
+                    alert('ไม่พบข้อมูลที่ถูกต้อง กรุณาตรวจสอบว่าไฟล์มีหัวคอลัมน์ รหัสนักเรียน / ชื่อ-สกุล / ชั้นเรียน');
+                    return;
+                }
+                if (!confirm(`พบข้อมูลนักเรียน ${importRows.length} รายการในไฟล์ ต้องการนำเข้าเข้าระบบเลยหรือไม่?\n(หมายเหตุ: ยังไม่มีรูปใบหน้า ต้องเข้าไปเพิ่มรูปให้แต่ละคนภายหลัง)`)) return;
+
+                const response = await apiCall({ action: 'bulkImportStudents', data: importRows });
+                if (response.success) {
+                    alert(`นำเข้าข้อมูลสำเร็จ ${response.count || importRows.length} รายการ`);
+                    loadStudentDataForTable();
+                } else {
+                    alert('เกิดข้อผิดพลาด: ' + (response.error || 'ไม่ทราบสาเหตุ'));
+                }
+            } catch (err) {
+                console.error('Import error:', err);
+                alert('ไม่สามารถอ่านไฟล์ได้ กรุณาตรวจสอบว่าเป็นไฟล์ CSV หรือ Excel (.xlsx) ที่ถูกต้อง');
+            }
+        }
+
         async function handleStudentFormSubmit(event) {
             event.preventDefault();
             const submitBtn = document.getElementById('form-submit-btn');
@@ -853,7 +889,12 @@
         }
         async function loadAttendanceDataForDashboard() {
              const response = await apiCall({ action: 'getAttendance' });
-             if (response.success) { attendance = response.data.map(rec => ({ ...rec, timestamp: new Date(rec.timestamp) })); renderDashboard(); }
+             if (response.success) {
+                 attendance = response.data
+                    .filter(rec => !selectedClassroom || rec.class === selectedClassroom)
+                    .map(rec => ({ ...rec, timestamp: new Date(rec.timestamp) }));
+                 renderDashboard();
+             }
         }
         function renderDashboard() {
             const selectedDate = new Date(document.getElementById('dashboard-date').value);
