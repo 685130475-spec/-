@@ -62,7 +62,7 @@
         <header class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-3 flex flex-col sm:flex-row justify-between items-center gap-4">
              <div class="flex items-center space-x-3">
                 <img id="header-logo" src="" class="w-8 h-8 object-contain" alt="โลโก้">
-                <h1 class="text-xl md:text-2xl font-bold text-gray-700 dark:text-gray-200">ระบบเช็คชื่อนักเรียนอัจฉริยะ</h1>
+                <h1 class="text-xl md:text-2xl font-bold text-gray-700 dark:text-gray-200">ระบบเช็คชื่อด้วยเทคโนโลยีใบหน้า</h1>
             </div>
             <div class="flex items-center gap-2">
                 <nav class="flex items-center flex-wrap justify-center space-x-1 md:space-x-2 bg-sky-50 dark:bg-gray-700 p-1 rounded-lg">
@@ -94,7 +94,7 @@
         <!-- แผงเลือกห้องเรียน+วิชาที่สอน (ย้ายมาจากหน้าล็อกอินเดิม ให้เลือกได้จากในแดชบอร์ด) -->
         <div id="room-picker-panel" class="hidden bg-white dark:bg-gray-800 border border-slate-100 dark:border-gray-700 rounded-lg p-4 mb-6">
             <div class="flex items-center justify-between mb-3">
-                <h3 class="font-medium text-slate-600 dark:text-gray-300 text-sm">ห้องเรียนและวิชาที่สอนของฉัน <span id="room-picker-count" class="text-slate-400 font-normal">(0/6)</span></h3>
+                <h3 class="font-medium text-slate-600 dark:text-gray-300 text-sm">ห้องเรียนและวิชาที่สอน <span id="room-picker-count" class="text-slate-400 font-normal">(0/6)</span></h3>
                 <button onclick="promptAddRoomSubject()" class="text-xs bg-sky-50 text-sky-600 border border-sky-100 px-2.5 py-1.5 rounded-lg hover:bg-sky-100 flex items-center gap-1"><i data-lucide="plus" class="w-3.5 h-3.5"></i>เพิ่มห้อง/วิชา</button>
             </div>
             <div id="room-picker-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2"></div>
@@ -107,7 +107,7 @@
             <div id="content-dashboard" class="space-y-6">
                  <div class="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md">
                      <div class="flex flex-col sm:flex-row items-center justify-between mb-4 gap-4">
-                        <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300">ภาพรวมและรายชื่อนักเรียน</h2>
+                        <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300">ภาพรวมและรายชื่อนักศึกษา</h2>
                         <input type="date" id="dashboard-date" class="border rounded-lg p-2 w-full sm:w-auto bg-transparent dark:text-gray-200 dark:border-gray-600">
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 text-center">
@@ -134,7 +134,7 @@
                     
                 </div>
                 <div class="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md">
-                    <h3 class="font-semibold mb-4">รายชื่อนักเรียนในระบบ</h3>
+                    <h3 class="font-semibold mb-4">รายชื่อนักศึกษาในระบบ</h3>
                     <div id="student-roster-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 max-h-[60vh] overflow-y-auto custom-scrollbar pr-2"></div>
                      <div id="roster-loading" class="text-center py-8"><div class="loader w-12 h-12 rounded-full border-4 border-gray-200 dark:border-gray-700 mx-auto"></div><p class="mt-4 text-gray-600 dark:text-gray-400">กำลังโหลดข้อมูลนักเรียน...</p></div>
                 </div>
@@ -164,11 +164,6 @@
                                 <span>&nbsp;เช็คชื่อสำเร็จ!</span>
                                 <span id="scan-success-status" class="block text-lg font-semibold text-green-300 mt-1"></span>
                             </div>
-                            <div id="scan-unknown-overlay" class="absolute inset-0 bg-amber-900 bg-opacity-80 text-white flex flex-col items-center justify-center hidden animate-fade-in text-center px-4">
-                                <i data-lucide="user-round-x" class="w-10 h-10 mb-2"></i>
-                                <span class="text-xl font-bold">ไม่พบข้อมูลใบหน้านี้ในระบบ</span>
-                                <span class="block text-sm mt-1 text-amber-100">กรุณาแจ้งครูผู้สอนเพื่อลงทะเบียนใบหน้าก่อนเช็คชื่อ</span>
-                            </div>
                         </div>
                     </div>
                     <div class="text-center">
@@ -180,7 +175,7 @@
 
                 <div id="absence-management-section" class="hidden bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md">
                     <h2 class="text-xl font-bold mb-4">สรุปผลการเช็คชื่อ</h2>
-                    <p class="text-gray-600 dark:text-gray-400 mb-4">ตรวจสอบสถานะของนักเรียนและกดบันทึกเพื่อยืนยัน</p>
+                    <p class="text-gray-600 dark:text-gray-400 mb-4">ตรวจสอบสถานะของนักศึกษาและกดบันทึกเพื่อยืนยัน</p>
                     <div id="absent-list" class="space-y-3 max-h-80 overflow-y-auto custom-scrollbar pr-2"></div>
                     <div class="text-right mt-6">
                         <button onclick="finishAttendance()" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700">บันทึกและเสร็จสิ้น</button>
@@ -190,13 +185,13 @@
 
             <!-- Manage Students Tab -->
             <div id="content-manage" class="hidden">
-                 <div class="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md"><div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-2"><h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300">จัดการข้อมูลนักเรียน</h2><div class="flex items-center gap-2 w-full sm:w-auto"><button onclick="document.getElementById('import-file-input').click()" class="bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-2 rounded-lg hover:bg-emerald-100 flex items-center space-x-2 flex-1 sm:flex-none justify-center"><i data-lucide="upload"></i><span>นำเข้าข้อมูล (CSV/Excel)</span></button><input type="file" id="import-file-input" accept=".csv,.xlsx,.xls" class="hidden"><button onclick="openStudentModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2 flex-1 sm:flex-none justify-center"><i data-lucide="user-plus"></i><span>เพิ่มนักเรียน</span></button></div></div><div class="overflow-x-auto"><table class="w-full text-left min-w-[700px] text-base"><thead class="bg-gray-50 dark:bg-gray-700/50"><tr><th class="p-3">รหัสนักเรียน</th><th class="p-3">ชื่อ-สกุล</th><th class="p-3">ชั้นเรียน</th><th class="p-3 text-center">บันทึกลาวันนี้</th><th class="p-3 text-center">จัดการ</th></tr></thead><tbody id="student-table-body" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody></table></div></div>
+                 <div class="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md"><div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-2"><h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300">จัดการข้อมูลนักศึกษา</h2><div class="flex items-center gap-2 w-full sm:w-auto"><button onclick="document.getElementById('import-file-input').click()" class="bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-2 rounded-lg hover:bg-emerald-100 flex items-center space-x-2 flex-1 sm:flex-none justify-center"><i data-lucide="upload"></i><span>นำเข้าข้อมูล (CSV/Excel)</span></button><input type="file" id="import-file-input" accept=".csv,.xlsx,.xls" class="hidden"><button onclick="openStudentModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2 flex-1 sm:flex-none justify-center"><i data-lucide="user-plus"></i><span>เพิ่มนักศึกษา</span></button></div></div><div class="overflow-x-auto"><table class="w-full text-left min-w-[700px] text-base"><thead class="bg-gray-50 dark:bg-gray-700/50"><tr><th class="p-3">รหัสนักศึกษา</th><th class="p-3">ชื่อ-สกุล</th><th class="p-3">ชั้นเรียน</th><th class="p-3 text-center">บันทึกลาวันนี้</th><th class="p-3 text-center">จัดการ</th></tr></thead><tbody id="student-table-body" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody></table></div></div>
             </div>
         </main>
     </div>
 
     <!-- Modals -->
-    <div id="student-modal" class="fixed inset-0 bg-gray-800 bg-opacity-70 flex items-center justify-center p-4 z-40 hidden"><div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 md:p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar"><h2 id="modal-title" class="text-2xl font-bold mb-6">เพิ่มข้อมูลนักเรียน</h2><form id="student-form" onsubmit="handleStudentFormSubmit(event)"><input type="hidden" id="student-row-index"><div class="grid grid-cols-1 md:grid-cols-2 gap-6"><div><label for="student-id" class="block font-medium mb-2">รหัสนักเรียน</label><input type="text" id="student-id" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg p-3" required><label for="student-name" class="block font-medium mb-2 mt-4">ชื่อ-สกุล</label><input type="text" id="student-name" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg p-3" required><label for="student-class" class="block font-medium mb-2 mt-4">ชั้นเรียน</label><input type="text" id="student-class" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg p-3" required></div><div class="flex flex-col"><div class="flex border-b border-gray-200 dark:border-gray-700 mb-4"><button type="button" id="tab-btn-camera" onclick="switchImageInput('camera')" class="flex-1 py-2 text-center font-medium border-b-2 border-blue-600 text-blue-600">ถ่ายภาพ</button><button type="button" id="tab-btn-upload" onclick="switchImageInput('upload')" class="flex-1 py-2 text-center font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">อัปโหลด</button></div><div id="input-camera" class="flex flex-col items-center"><div class="w-full max-w-xs mx-auto aspect-[4/3] bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden relative"><video id="capture-video" class="w-full h-full object-cover" autoplay playsinline></video><canvas id="capture-canvas" class="hidden"></canvas></div><button type="button" onclick="capturePhoto()" class="bg-indigo-600 text-white px-4 py-2 mt-4 rounded-lg hover:bg-indigo-700 w-full max-w-xs">ถ่ายภาพ</button></div><div id="input-upload" class="hidden flex flex-col items-center"><div class="w-full max-w-xs mx-auto aspect-[4/3] bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center"><img id="image-preview" src="" class="w-full h-full object-cover hidden"></div><input type="file" id="image-upload-input" accept="image/*" class="hidden"><button type="button" onclick="document.getElementById('image-upload-input').click()" class="bg-indigo-600 text-white px-4 py-2 mt-4 rounded-lg hover:bg-indigo-700 w-full max-w-xs">เลือกไฟล์รูปภาพ</button></div><input type="hidden" id="student-image-data"></div></div><div class="flex justify-end space-x-4 mt-8"><button type="button" onclick="closeStudentModal()" class="bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-300 px-6 py-2 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">ยกเลิก</button><button type="submit" id="form-submit-btn" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">บันทึก</button></div></form></div></div>
+    <div id="student-modal" class="fixed inset-0 bg-gray-800 bg-opacity-70 flex items-center justify-center p-4 z-40 hidden"><div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 md:p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar"><h2 id="modal-title" class="text-2xl font-bold mb-6">เพิ่มข้อมูลนักศึกษา</h2><form id="student-form" onsubmit="handleStudentFormSubmit(event)"><input type="hidden" id="student-row-index"><div class="grid grid-cols-1 md:grid-cols-2 gap-6"><div><label for="student-id" class="block font-medium mb-2">รหัสนักศึกษา</label><input type="text" id="student-id" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg p-3" required><label for="student-name" class="block font-medium mb-2 mt-4">ชื่อ-สกุล</label><input type="text" id="student-name" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg p-3" required><label for="student-class" class="block font-medium mb-2 mt-4">ชั้นเรียน</label><input type="text" id="student-class" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg p-3" required></div><div class="flex flex-col"><div class="flex border-b border-gray-200 dark:border-gray-700 mb-4"><button type="button" id="tab-btn-camera" onclick="switchImageInput('camera')" class="flex-1 py-2 text-center font-medium border-b-2 border-blue-600 text-blue-600">ถ่ายภาพ</button><button type="button" id="tab-btn-upload" onclick="switchImageInput('upload')" class="flex-1 py-2 text-center font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">อัปโหลด</button></div><div id="input-camera" class="flex flex-col items-center"><div class="w-full max-w-xs mx-auto aspect-[4/3] bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden relative"><video id="capture-video" class="w-full h-full object-cover" autoplay playsinline></video><canvas id="capture-canvas" class="hidden"></canvas></div><button type="button" onclick="capturePhoto()" class="bg-indigo-600 text-white px-4 py-2 mt-4 rounded-lg hover:bg-indigo-700 w-full max-w-xs">ถ่ายภาพ</button></div><div id="input-upload" class="hidden flex flex-col items-center"><div class="w-full max-w-xs mx-auto aspect-[4/3] bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center"><img id="image-preview" src="" class="w-full h-full object-cover hidden"></div><input type="file" id="image-upload-input" accept="image/*" class="hidden"><button type="button" onclick="document.getElementById('image-upload-input').click()" class="bg-indigo-600 text-white px-4 py-2 mt-4 rounded-lg hover:bg-indigo-700 w-full max-w-xs">เลือกไฟล์รูปภาพ</button></div><input type="hidden" id="student-image-data"></div></div><div class="flex justify-end space-x-4 mt-8"><button type="button" onclick="closeStudentModal()" class="bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-300 px-6 py-2 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">ยกเลิก</button><button type="submit" id="form-submit-btn" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">บันทึก</button></div></form></div></div>
 
     <script>
         // --- GLOBAL STATE & CONFIG ---
@@ -239,7 +234,6 @@
             return { period: '', status: 'มาเรียน' };
         }
         let isScanning = false, captureStream = null;
-        let lastUnknownFaceAlert = 0;
         let recognitionInterval = null; 
         let currentGeoLocation = null;
 
@@ -474,7 +468,7 @@
 
         async function promptAddRoomSubject() {
             if (teacherSubjectsList.length >= 6) { alert('เพิ่มได้สูงสุด 6 ห้อง/วิชาต่ออาจารย์หนึ่งคน'); return; }
-            const className = prompt('กรอกชื่อห้องเรียน (เช่น ปวช.1/1):');
+            const className = prompt('กรอกชื่อห้องเรียน:');
             if (!className || !className.trim()) return;
             const subject = prompt('กรอกชื่อวิชาที่สอน:');
             if (!subject || !subject.trim()) return;
@@ -557,7 +551,7 @@
                         rosterGrid.appendChild(card);
                     });
                 }
-            } else { rosterGrid.innerHTML = `<p class="col-span-full text-center text-red-500">ไม่สามารถโหลดข้อมูลนักเรียนได้</p>`; }
+            } else { rosterGrid.innerHTML = `<p class="col-span-full text-center text-red-500">ไม่สามารถโหลดข้อมูลนักศึกษาได้</p>`; }
             rosterLoading.style.display = 'none';
         }
 
@@ -569,11 +563,10 @@
                 return;
             }
             if (!faceMatcher) {
-                alert('ยังไม่มีข้อมูลใบหน้านักเรียนที่ใช้เทียบได้ในห้องนี้ กรุณาตรวจสอบว่านักเรียนในห้อง ' + selectedClassroom + ' มีการถ่าย/อัปโหลดรูปใบหน้าไว้แล้ว (ไปที่แท็บ "จัดการข้อมูล")');
+                alert('ยังไม่มีข้อมูลใบหน้านักศึกษาที่ใช้เทียบได้ในห้องนี้ กรุณาตรวจสอบว่านักศึกษาในห้อง ' + selectedClassroom + ' มีการถ่าย/อัปโหลดรูปใบหน้าไว้แล้ว (ไปที่แท็บ "จัดการข้อมูล")');
                 return;
             }
             checkedInToday.clear();
-            lastUnknownFaceAlert = 0;
             document.getElementById('start-scan-section').classList.add('hidden');
             document.getElementById('scanning-section').classList.remove('hidden');
             document.getElementById('absence-management-section').classList.add('hidden');
@@ -664,7 +657,7 @@
                     alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล กรุณาลองใหม่อีกครั้ง');
                 }
             } else {
-                alert('ไม่มีข้อมูลนักเรียนให้บันทึก');
+                alert('ไม่มีข้อมูลนักศึกษาให้บันทึก');
             }
 
             checkedInToday.clear();
@@ -711,29 +704,15 @@
                     overlay.getContext('2d').clearRect(0, 0, overlay.width, overlay.height);
                     if (faceMatcher) {
                         const results = resizedDetections.map(d => faceMatcher.findBestMatch(d.descriptor));
-                        let hasUnknownFace = false;
                         results.forEach((result, i) => {
                             const box = resizedDetections[i].detection.box;
-                            const isUnknown = result.label === 'unknown';
-                            const drawBox = new faceapi.draw.DrawBox(box, { label: result.toString(), boxColor: isUnknown ? '#f59e0b' : '#22c55e' });
+                            const drawBox = new faceapi.draw.DrawBox(box, { label: result.toString() });
                             drawBox.draw(overlay);
-                            if (isUnknown) {
-                                hasUnknownFace = true;
-                            } else {
-                                const student = students.find(s => s.name === result.label);
-                                if (student && !checkedInToday.has(student.studentid)) {
-                                    handleRecognition(student);
-                                }
+                            const student = students.find(s => s.name === result.label);
+                            if (student && !checkedInToday.has(student.studentid)) {
+                                handleRecognition(student);
                             }
                         });
-                        // ถ้าเจอใบหน้าแต่ไม่ตรงกับใครในระบบเลย ให้แจ้งเตือนแบบไม่ถี่เกินไป (ทุก 4 วินาที)
-                        if (hasUnknownFace) {
-                            const now = Date.now();
-                            if (now - lastUnknownFaceAlert > 4000) {
-                                lastUnknownFaceAlert = now;
-                                showUnknownFaceOverlay();
-                            }
-                        }
                     }
                 } catch (e) {
                     console.error('recognition loop error:', e);
@@ -790,14 +769,6 @@
             }, 2500);
         }
 
-        // แสดงข้อความเตือนเมื่อเจอใบหน้าแต่ไม่ตรงกับข้อมูลนักเรียนคนไหนในระบบเลย (ยังไม่เคยลงทะเบียนใบหน้า)
-        function showUnknownFaceOverlay() {
-            const el = document.getElementById('scan-unknown-overlay');
-            if (!el) return;
-            el.classList.remove('hidden');
-            setTimeout(() => el.classList.add('hidden'), 2200);
-        }
-
         // --- STUDENT MODAL & PHOTO UPLOAD ---
         function switchImageInput(type) {
             const cameraTab = document.getElementById('tab-btn-camera'), uploadTab = document.getElementById('tab-btn-upload');
@@ -843,7 +814,7 @@
             document.getElementById('student-image-data').value = '';
             switchImageInput('camera');
             if (student) {
-                document.getElementById('modal-title').innerText = 'แก้ไขข้อมูลนักเรียน';
+                document.getElementById('modal-title').innerText = 'แก้ไขข้อมูลนักศึกษา';
                 document.getElementById('student-row-index').value = student.rowIndex;
                 document.getElementById('student-id').value = student.studentid;
                 document.getElementById('student-name').value = student.name;
@@ -855,7 +826,7 @@
                     document.getElementById('image-preview').classList.remove('hidden');
                 }
             } else {
-                document.getElementById('modal-title').innerText = 'เพิ่มข้อมูลนักเรียน';
+                document.getElementById('modal-title').innerText = 'เพิ่มข้อมูลนักศึกษา';
             }
             document.getElementById('student-modal').classList.remove('hidden');
         }
@@ -977,16 +948,16 @@
                     return '';
                 };
                 const importRows = rows.map(row => ({
-                    id: String(pickField(row, ['รหัสนักเรียน', 'รหัส', 'id', 'studentid', 'student id'])).trim(),
+                    id: String(pickField(row, ['รหัสนักศึกษา', 'รหัส', 'id', 'studentid', 'student id'])).trim(),
                     name: String(pickField(row, ['ชื่อ-สกุล', 'ชื่อสกุล', 'ชื่อ', 'name'])).trim(),
                     class: String(pickField(row, ['ชั้นเรียน', 'ห้อง', 'ห้องเรียน', 'class'])).trim()
                 })).filter(r => r.id && r.name);
 
                 if (importRows.length === 0) {
-                    alert('ไม่พบข้อมูลที่ถูกต้อง กรุณาตรวจสอบว่าไฟล์มีหัวคอลัมน์ รหัสนักเรียน / ชื่อ-สกุล / ชั้นเรียน');
+                    alert('ไม่พบข้อมูลที่ถูกต้อง กรุณาตรวจสอบว่าไฟล์มีหัวคอลัมน์ รหัสนักศึกษา / ชื่อ-สกุล / ชั้นเรียน');
                     return;
                 }
-                if (!confirm(`พบข้อมูลนักเรียน ${importRows.length} รายการในไฟล์ ต้องการนำเข้าเข้าระบบเลยหรือไม่?\n(หมายเหตุ: ยังไม่มีรูปใบหน้า ต้องเข้าไปเพิ่มรูปให้แต่ละคนภายหลัง)`)) return;
+                if (!confirm(`พบข้อมูลนักศึกษา ${importRows.length} รายการในไฟล์ ต้องการนำเข้าเข้าระบบเลยหรือไม่?\n(หมายเหตุ: ยังไม่มีรูปใบหน้า ต้องเข้าไปเพิ่มรูปให้แต่ละคนภายหลัง)`)) return;
 
                 const response = await apiCall({ action: 'bulkImportStudents', data: importRows });
                 if (response.success) {
@@ -1017,7 +988,7 @@
         function editStudent(rowIndex) { const student = students.find(s => s.rowIndex == rowIndex);
         if (student) { openStudentModal(student); } }
         async function deleteStudent(rowIndex) {
-            if (confirm('คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลนักเรียนคนนี้?')) {
+            if (confirm('คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลนักศึกษาคนนี้?')) {
                 const response = await apiCall({ action: 'deleteStudent', data: { rowIndex } });
                 if (response.success) { loadStudentDataForTable(); } else { alert('Error: ' + response.error); }
             }
