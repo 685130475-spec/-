@@ -154,6 +154,11 @@
                         <div class="w-full max-w-4xl mx-auto bg-black rounded-lg overflow-hidden relative aspect-video hidden" id="video-wrapper">
                             <video id="video" class="w-full h-full mirrored-feed" autoplay muted playsinline></video>
                             <canvas id="overlay" class="absolute top-0 left-0 mirrored-feed"></canvas>
+                            <!-- กรอบแนะนำตำแหน่งวางใบหน้า (แสดงตลอดเวลาที่กล้องเปิด ไม่ขึ้นกับผลตรวจจับ) -->
+                            <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <div class="w-[42%] aspect-[3/4] border-4 border-dashed border-white/70 rounded-[50%]"></div>
+                            </div>
+                            <p class="absolute bottom-2 left-0 right-0 text-center text-white/90 text-sm font-medium drop-shadow pointer-events-none">วางใบหน้าให้อยู่ในกรอบ</p>
                             <div id="scan-success-overlay" class="absolute inset-0 bg-green-900 bg-opacity-80 text-white flex flex-col items-center justify-center hidden animate-fade-in text-center px-4">
                                 <span id="scan-success-name" class="text-3xl font-bold"></span>
                                 <span>&nbsp;เช็คชื่อสำเร็จ!</span>
@@ -557,6 +562,10 @@
                 toggleRoomPicker();
                 return;
             }
+            if (!faceMatcher) {
+                alert('ยังไม่มีข้อมูลใบหน้านักเรียนที่ใช้เทียบได้ในห้องนี้ กรุณาตรวจสอบว่านักเรียนในห้อง ' + selectedClassroom + ' มีการถ่าย/อัปโหลดรูปใบหน้าไว้แล้ว (ไปที่แท็บ "จัดการข้อมูล")');
+                return;
+            }
             checkedInToday.clear();
             document.getElementById('start-scan-section').classList.add('hidden');
             document.getElementById('scanning-section').classList.remove('hidden');
@@ -689,7 +698,7 @@
             async function recognitionLoop() {
                 if (!isScanning) return;
                 try {
-                    const detections = await faceapi.detectAllFaces(video).withFaceLandmarks().withFaceDescriptors();
+                    const detections = await faceapi.detectAllFaces(video, new faceapi.SsdMobilenetv1Options()).withFaceLandmarks().withFaceDescriptors();
                     if (!isScanning) return; // เช็คซ้ำเผื่อผู้ใช้กดหยุดระหว่างกำลังประมวลผลอยู่
                     const resizedDetections = faceapi.resizeResults(detections, displaySize);
                     overlay.getContext('2d').clearRect(0, 0, overlay.width, overlay.height);
@@ -707,6 +716,10 @@
                     }
                 } catch (e) {
                     console.error('recognition loop error:', e);
+                    if (!recognitionLoop._warned) {
+                        recognitionLoop._warned = true;
+                        alert('เกิดข้อผิดพลาดขณะตรวจจับใบหน้า: ' + e.message + '\nกรุณาลองรีเฟรชหน้าเว็บแล้วเริ่มเช็คชื่อใหม่');
+                    }
                 }
                 if (isScanning) {
                     recognitionInterval = setTimeout(recognitionLoop, 300);
@@ -723,7 +736,7 @@
                     if (student.imagedatabase64 && student.imagedatabase64.startsWith('data:image')) {
                         try {
                             const img = await faceapi.fetchImage(student.imagedatabase64);
-                             const detections = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
+                             const detections = await faceapi.detectSingleFace(img, new faceapi.SsdMobilenetv1Options()).withFaceLandmarks().withFaceDescriptor();
                             if (detections) { return new faceapi.LabeledFaceDescriptors(student.name, [detections.descriptor]); }
                         } catch (e) { console.error(`Could not process image for ${student.name}`, e); }
                      }
