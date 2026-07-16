@@ -542,7 +542,7 @@
             if (response.success) {
                 students = response.data.filter(s => s.class === selectedClassroom);
                 if (students.length === 0) {
-                    rosterGrid.innerHTML = `<p class="col-span-full text-center text-gray-500">ยังไม่มีข้อมูลนักเรียนในห้อง ${selectedClassroom}</p>`;
+                    rosterGrid.innerHTML = `<p class="col-span-full text-center text-gray-500">ยังไม่มีข้อมูลนักศึกษาในห้อง ${selectedClassroom}</p>`;
                 } else {
                     students.forEach(student => {
                         const card = document.createElement('div');
