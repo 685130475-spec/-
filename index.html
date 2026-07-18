@@ -63,7 +63,6 @@
              <div class="flex items-center space-x-3">
                 <img id="header-logo" src="" class="w-8 h-8 object-contain" alt="โลโก้">
                 <h1 class="text-xl md:text-2xl font-bold text-gray-700 dark:text-gray-200">ระบบเช็คชื่อด้วยเทคโนโลยีใบหน้า</h1>
-                <span class="text-xs font-mono bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full" title="เวอร์ชันไฟล์นี้ — ใช้เช็คว่า deploy ไฟล์ล่าสุดสำเร็จหรือยัง">v2026-07-18-06</span>
             </div>
             <div class="flex items-center gap-2">
                 <nav class="flex items-center flex-wrap justify-center space-x-1 md:space-x-2 bg-sky-50 dark:bg-gray-700 p-1 rounded-lg">
@@ -96,10 +95,27 @@
         <div id="room-picker-panel" class="hidden bg-white dark:bg-gray-800 border border-slate-100 dark:border-gray-700 rounded-lg p-4 mb-6">
             <div class="flex items-center justify-between mb-3">
                 <h3 class="font-medium text-slate-600 dark:text-gray-300 text-sm">ห้องเรียนและวิชาที่สอน <span id="room-picker-count" class="text-slate-400 font-normal">(0/6)</span></h3>
-                <button onclick="promptAddRoomSubject()" class="text-xs bg-sky-50 text-sky-600 border border-sky-100 px-2.5 py-1.5 rounded-lg hover:bg-sky-100 flex items-center gap-1"><i data-lucide="plus" class="w-3.5 h-3.5"></i>เพิ่มห้อง/วิชา</button>
+                <button onclick="toggleAddRoomForm()" class="text-xs bg-sky-50 text-sky-600 border border-sky-100 px-2.5 py-1.5 rounded-lg hover:bg-sky-100 flex items-center gap-1"><i data-lucide="plus" class="w-3.5 h-3.5"></i>เพิ่มห้อง/วิชา</button>
             </div>
             <div id="room-picker-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2"></div>
             <p id="room-picker-empty" class="hidden text-center text-sm text-slate-400 py-4">ยังไม่มีห้องเรียน/วิชาที่สอน กดปุ่ม "เพิ่มห้อง/วิชา" เพื่อเริ่มเพิ่มข้อมูล</p>
+            <!-- ฟอร์มเพิ่มห้อง/วิชา แยกช่องชัดเจน กันพิมพ์ผิด/ปนกันเหมือนตอนใช้ prompt() -->
+            <div id="add-room-form" class="hidden mt-3 pt-3 border-t border-slate-100 dark:border-gray-700">
+                <div class="grid sm:grid-cols-2 gap-2 mb-2">
+                    <div>
+                        <label class="block text-xs text-slate-500 mb-1">ชื่อห้องเรียน (พิมพ์ให้ตรงกับที่อยู่ในชีต Students เป๊ะๆ เช่น ปวส.2/7 ก1)</label>
+                        <input id="add-room-class-input" type="text" placeholder="เช่น ปวส.2/7 ก1" class="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-500 mb-1">วิชาที่สอน</label>
+                        <input id="add-room-subject-input" type="text" placeholder="เช่น โครงงาน" class="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400">
+                    </div>
+                </div>
+                <div class="flex gap-2 justify-end">
+                    <button onclick="toggleAddRoomForm()" class="text-sm px-3 py-1.5 rounded-lg text-slate-500 hover:bg-slate-100">ยกเลิก</button>
+                    <button onclick="confirmAddRoomSubject()" class="text-sm bg-sky-500 text-white px-4 py-1.5 rounded-lg hover:bg-sky-600">บันทึกห้อง/วิชานี้</button>
+                </div>
+            </div>
         </div>
 
         <!-- Dynamic Content Area -->
@@ -473,14 +489,32 @@
             document.getElementById('room-picker-panel').classList.toggle('hidden');
         }
 
-        async function promptAddRoomSubject() {
-            if (teacherSubjectsList.length >= 6) { alert('เพิ่มได้สูงสุด 6 ห้อง/วิชาต่ออาจารย์หนึ่งคน'); return; }
-            const className = prompt('กรอกชื่อห้องเรียน:');
-            if (!className || !className.trim()) return;
-            const subject = prompt('กรอกชื่อวิชาที่สอน:');
-            if (!subject || !subject.trim()) return;
-            const response = await apiCall({ action: 'addTeacherSubject', data: { teacherName: selectedTeacher, class: className.trim(), subject: subject.trim() } });
-            if (response.success) { await loadTeacherSubjects(); } else { alert('เกิดข้อผิดพลาด: ' + (response.error || '')); }
+        function toggleAddRoomForm() {
+            const form = document.getElementById('add-room-form');
+            const isHidden = form.classList.contains('hidden');
+            if (isHidden && teacherSubjectsList.length >= 6) { alert('เพิ่มได้สูงสุด 6 ห้อง/วิชาต่ออาจารย์หนึ่งคน'); return; }
+            form.classList.toggle('hidden');
+            if (isHidden) {
+                document.getElementById('add-room-class-input').value = '';
+                document.getElementById('add-room-subject-input').value = '';
+                document.getElementById('add-room-class-input').focus();
+            }
+        }
+
+        async function confirmAddRoomSubject() {
+            const classInput = document.getElementById('add-room-class-input');
+            const subjectInput = document.getElementById('add-room-subject-input');
+            const className = classInput.value.trim();
+            const subject = subjectInput.value.trim();
+            if (!className) { alert('กรุณากรอกชื่อห้องเรียน'); classInput.focus(); return; }
+            if (!subject) { alert('กรุณากรอกวิชาที่สอน'); subjectInput.focus(); return; }
+            const response = await apiCall({ action: 'addTeacherSubject', data: { teacherName: selectedTeacher, class: className, subject: subject } });
+            if (response.success) {
+                await loadTeacherSubjects();
+                document.getElementById('add-room-form').classList.add('hidden');
+            } else {
+                alert('เกิดข้อผิดพลาด: ' + (response.error || ''));
+            }
         }
 
         async function deleteRoomSubject(rowIndex) {
