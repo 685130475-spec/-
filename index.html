@@ -164,6 +164,11 @@
                                 <span>&nbsp;เช็คชื่อสำเร็จ!</span>
                                 <span id="scan-success-status" class="block text-lg font-semibold text-green-300 mt-1"></span>
                             </div>
+                            <div id="scan-unknown-overlay" class="absolute inset-0 bg-amber-900 bg-opacity-80 text-white flex flex-col items-center justify-center hidden animate-fade-in text-center px-4">
+                                <i data-lucide="user-round-x" class="w-10 h-10 mb-2"></i>
+                                <span class="text-xl font-bold">ไม่พบข้อมูลใบหน้านี้ในระบบ</span>
+                                <span class="block text-sm mt-1 text-amber-100">กรุณาแจ้งครูผู้สอนเพื่อลงทะเบียนใบหน้าก่อนเช็คชื่อ</span>
+                            </div>
                         </div>
                     </div>
                     <div class="text-center">
@@ -234,6 +239,7 @@
             return { period: '', status: 'มาเรียน' };
         }
         let isScanning = false, captureStream = null;
+        let lastUnknownFaceAlert = 0;
         let recognitionInterval = null; 
         let currentGeoLocation = null;
 
@@ -542,7 +548,7 @@
             if (response.success) {
                 students = response.data.filter(s => s.class === selectedClassroom);
                 if (students.length === 0) {
-                    rosterGrid.innerHTML = `<p class="col-span-full text-center text-gray-500">ยังไม่มีข้อมูลนักศึกษาในห้อง ${selectedClassroom}</p>`;
+                    rosterGrid.innerHTML = `<p class="col-span-full text-center text-gray-500">ยังไม่มีข้อมูลนักเรียนในห้อง ${selectedClassroom}</p>`;
                 } else {
                     students.forEach(student => {
                         const card = document.createElement('div');
@@ -567,6 +573,7 @@
                 return;
             }
             checkedInToday.clear();
+            lastUnknownFaceAlert = 0;
             document.getElementById('start-scan-section').classList.add('hidden');
             document.getElementById('scanning-section').classList.remove('hidden');
             document.getElementById('absence-management-section').classList.add('hidden');
@@ -704,15 +711,29 @@
                     overlay.getContext('2d').clearRect(0, 0, overlay.width, overlay.height);
                     if (faceMatcher) {
                         const results = resizedDetections.map(d => faceMatcher.findBestMatch(d.descriptor));
+                        let hasUnknownFace = false;
                         results.forEach((result, i) => {
                             const box = resizedDetections[i].detection.box;
-                            const drawBox = new faceapi.draw.DrawBox(box, { label: result.toString() });
+                            const isUnknown = result.label === 'unknown';
+                            const drawBox = new faceapi.draw.DrawBox(box, { label: result.toString(), boxColor: isUnknown ? '#f59e0b' : '#22c55e' });
                             drawBox.draw(overlay);
-                            const student = students.find(s => s.name === result.label);
-                            if (student && !checkedInToday.has(student.studentid)) {
-                                handleRecognition(student);
+                            if (isUnknown) {
+                                hasUnknownFace = true;
+                            } else {
+                                const student = students.find(s => s.name === result.label);
+                                if (student && !checkedInToday.has(student.studentid)) {
+                                    handleRecognition(student);
+                                }
                             }
                         });
+                        // ถ้าเจอใบหน้าแต่ไม่ตรงกับใครในระบบเลย ให้แจ้งเตือนแบบไม่ถี่เกินไป (ทุก 4 วินาที)
+                        if (hasUnknownFace) {
+                            const now = Date.now();
+                            if (now - lastUnknownFaceAlert > 4000) {
+                                lastUnknownFaceAlert = now;
+                                showUnknownFaceOverlay();
+                            }
+                        }
                     }
                 } catch (e) {
                     console.error('recognition loop error:', e);
@@ -767,6 +788,14 @@
             setTimeout(() => {
                 successOverlay.classList.add('hidden');
             }, 2500);
+        }
+
+        // แสดงข้อความเตือนเมื่อเจอใบหน้าแต่ไม่ตรงกับข้อมูลนักศึกษาคนไหนในระบบเลย (ยังไม่เคยลงทะเบียนใบหน้า)
+        function showUnknownFaceOverlay() {
+            const el = document.getElementById('scan-unknown-overlay');
+            if (!el) return;
+            el.classList.remove('hidden');
+            setTimeout(() => el.classList.add('hidden'), 2200);
         }
 
         // --- STUDENT MODAL & PHOTO UPLOAD ---
@@ -940,17 +969,28 @@
                 const rows = XLSX.utils.sheet_to_json(firstSheet, { defval: '' });
                 if (rows.length === 0) { alert('ไม่พบข้อมูลในไฟล์ที่เลือก'); return; }
 
-                const pickField = (row, keys) => {
-                    for (const key of Object.keys(row)) {
-                        const normalizedKey = key.toString().trim().toLowerCase();
-                        if (keys.includes(normalizedKey)) return row[key];
+                const pickField = (row, exactKeys, prefixKeys) => {
+                    const entries = Object.keys(row).map(k => ({ orig: k, norm: k.toString().trim().toLowerCase() }));
+                    // ลองจับคู่แบบตรงเป๊ะก่อน
+                    for (const { orig, norm } of entries) {
+                        if (exactKeys.includes(norm)) return row[orig];
+                    }
+                    // ถ้าไม่เจอ ลองจับคู่แบบขึ้นต้นด้วยคำที่กำหนด (รองรับหัวคอลัมน์จากระบบอื่น เช่น "รหัส PVRS", "รหัส วทน.อต.", "ชั้น")
+                    for (const { orig, norm } of entries) {
+                        if (prefixKeys.some(p => norm.startsWith(p))) return row[orig];
                     }
                     return '';
                 };
                 const importRows = rows.map(row => ({
-                    id: String(pickField(row, ['รหัสนักศึกษา', 'รหัส', 'id', 'studentid', 'student id'])).trim(),
-                    name: String(pickField(row, ['ชื่อ-สกุล', 'ชื่อสกุล', 'ชื่อ', 'name'])).trim(),
-                    class: String(pickField(row, ['ชั้นเรียน', 'ห้อง', 'ห้องเรียน', 'class'])).trim()
+                    id: String(pickField(row,
+                        ['รหัสนักศึกษา', 'รหัสนักเรียน', 'รหัส', 'id', 'studentid', 'student id'],
+                        ['รหัส', 'id'])).trim(),
+                    name: String(pickField(row,
+                        ['ชื่อ-สกุล', 'ชื่อสกุล', 'ชื่อ', 'name'],
+                        ['ชื่อ'])).trim().replace(/\s+/g, ' '),
+                    class: String(pickField(row,
+                        ['ชั้นเรียน', 'ห้อง', 'ห้องเรียน', 'class', 'ชั้น'],
+                        ['ชั้น', 'ห้อง', 'class'])).trim()
                 })).filter(r => r.id && r.name);
 
                 if (importRows.length === 0) {
