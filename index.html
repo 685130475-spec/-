@@ -63,6 +63,7 @@
              <div class="flex items-center space-x-3">
                 <img id="header-logo" src="" class="w-8 h-8 object-contain" alt="โลโก้">
                 <h1 class="text-xl md:text-2xl font-bold text-gray-700 dark:text-gray-200">ระบบเช็คชื่อด้วยเทคโนโลยีใบหน้า</h1>
+                <span class="text-xs font-mono bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full" title="เวอร์ชันไฟล์นี้ — ใช้เช็คว่า deploy ไฟล์ล่าสุดสำเร็จหรือยัง">v2026-07-18-06</span>
             </div>
             <div class="flex items-center gap-2">
                 <nav class="flex items-center flex-wrap justify-center space-x-1 md:space-x-2 bg-sky-50 dark:bg-gray-700 p-1 rounded-lg">
@@ -190,7 +191,7 @@
 
             <!-- Manage Students Tab -->
             <div id="content-manage" class="hidden">
-                 <div class="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md"><div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-2"><h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300">จัดการข้อมูลนักศึกษา</h2><div class="flex items-center gap-2 w-full sm:w-auto"><button onclick="document.getElementById('import-file-input').click()" class="bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-2 rounded-lg hover:bg-emerald-100 flex items-center space-x-2 flex-1 sm:flex-none justify-center"><i data-lucide="upload"></i><span>นำเข้าข้อมูล (CSV/Excel)</span></button><input type="file" id="import-file-input" accept=".csv,.xlsx,.xls" class="hidden"><button onclick="openStudentModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2 flex-1 sm:flex-none justify-center"><i data-lucide="user-plus"></i><span>เพิ่มนักศึกษา</span></button></div></div><div class="overflow-x-auto"><table class="w-full text-left min-w-[700px] text-base"><thead class="bg-gray-50 dark:bg-gray-700/50"><tr><th class="p-3">รหัสนักศึกษา</th><th class="p-3">ชื่อ-สกุล</th><th class="p-3">ชั้นเรียน</th><th class="p-3 text-center">บันทึกลาวันนี้</th><th class="p-3 text-center">จัดการ</th></tr></thead><tbody id="student-table-body" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody></table></div></div>
+                 <div class="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md"><div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-2"><h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300">จัดการข้อมูลนักศึกษา</h2><div class="flex items-center gap-2 w-full sm:w-auto"><button onclick="document.getElementById('import-file-input').click()" class="bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-2 rounded-lg hover:bg-emerald-100 flex items-center space-x-2 flex-1 sm:flex-none justify-center"><i data-lucide="upload"></i><span>นำเข้าข้อมูล (CSV/Excel)</span></button><input type="file" id="import-file-input" accept=".csv,.xlsx,.xls" class="hidden"><button id="save-all-leave-btn" disabled onclick="saveAllLeaveStatus()" class="bg-amber-500 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg hover:bg-amber-600 flex items-center space-x-2 flex-1 sm:flex-none justify-center transition-colors"><i data-lucide="save"></i><span>บันทึกการลา</span></button><button onclick="openStudentModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2 flex-1 sm:flex-none justify-center"><i data-lucide="user-plus"></i><span>เพิ่มนักศึกษา</span></button></div></div><div class="overflow-x-auto"><table class="w-full text-left min-w-[700px] text-base"><thead class="bg-gray-50 dark:bg-gray-700/50"><tr><th class="p-3">รหัสนักศึกษา</th><th class="p-3">ชื่อ-สกุล</th><th class="p-3">ชั้นเรียน</th><th class="p-3 text-center">บันทึกลาวันนี้</th><th class="p-3 text-center">จัดการ</th></tr></thead><tbody id="student-table-body" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody></table></div></div>
             </div>
         </main>
     </div>
@@ -910,70 +911,79 @@
                     const safeName = student.name.replace(/'/g, "\\'");
                     row.innerHTML = `<td class="p-3">${student.studentid}</td><td class="p-3">${student.name}</td><td class="p-3">${student.class}</td>
                         <td class="p-3">
-                            <div class="flex items-center justify-center gap-3 flex-wrap" id="leave-cell-${student.rowIndex}">
+                            <div class="flex items-center justify-center gap-3 flex-wrap" id="leave-cell-${student.rowIndex}" data-studentid="${student.studentid}" data-name="${safeName}" data-class="${student.class}">
                                 <label class="inline-flex items-center gap-1.5 text-base cursor-pointer select-none">
-                                    <input type="checkbox" class="w-5 h-5 accent-amber-500 leave-checkbox" data-status="ลาป่วย" onchange="onLeaveCheckboxChange(this, ${student.rowIndex})">
+                                    <input type="checkbox" class="w-5 h-5 accent-amber-500 leave-checkbox" data-status="ลาป่วย" onchange="onLeaveCheckboxChange(this)">
                                     <span>ลาป่วย</span>
                                 </label>
                                 <label class="inline-flex items-center gap-1.5 text-base cursor-pointer select-none">
-                                    <input type="checkbox" class="w-5 h-5 accent-sky-500 leave-checkbox" data-status="ลากิจ" onchange="onLeaveCheckboxChange(this, ${student.rowIndex})">
+                                    <input type="checkbox" class="w-5 h-5 accent-sky-500 leave-checkbox" data-status="ลากิจ" onchange="onLeaveCheckboxChange(this)">
                                     <span>ลากิจ</span>
                                 </label>
-                                <button type="button" id="save-leave-btn-${student.rowIndex}" disabled onclick="saveLeaveStatus('${student.studentid}', '${safeName}', '${student.class}', ${student.rowIndex})" class="text-sm bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 transition-colors">บันทึก</button>
                             </div>
                         </td>
                         <td class="p-3 text-center"><button onclick="editStudent(${student.rowIndex})" class="text-blue-600 p-1 text-base">แก้ไข</button><button onclick="deleteStudent(${student.rowIndex})" class="text-red-600 p-1 text-base">ลบ</button></td>`;
                     tableBody.appendChild(row);
                  });
+                 updateSaveLeaveButtonState();
             }
         }
 
-        // ติ๊กได้ทีละสถานะ (ลาป่วย หรือ ลากิจ อย่างใดอย่างหนึ่ง) แล้วค่อยกด "บันทึก" ให้ชัดเจนว่าบันทึกจริง
-        function onLeaveCheckboxChange(checkboxEl, rowIndex) {
-            const cell = document.getElementById(`leave-cell-${rowIndex}`);
+        // ติ๊กได้ทีละสถานะต่อคน (ลาป่วย หรือ ลากิจ อย่างใดอย่างหนึ่ง) — บันทึกจริงตอนกดปุ่ม "บันทึกการลา" รวมด้านบน
+        function onLeaveCheckboxChange(checkboxEl) {
+            const cell = checkboxEl.closest('[id^="leave-cell-"]');
             if (checkboxEl.checked) {
                 cell.querySelectorAll('.leave-checkbox').forEach(cb => { if (cb !== checkboxEl) cb.checked = false; });
             }
-            const anyChecked = Array.from(cell.querySelectorAll('.leave-checkbox')).some(cb => cb.checked);
-            document.getElementById(`save-leave-btn-${rowIndex}`).disabled = !anyChecked;
+            updateSaveLeaveButtonState();
         }
 
-        // กดปุ่ม "บันทึก" เพื่อบันทึกสถานะลาป่วย/ลากิจ ของนักศึกษาคนนั้นสำหรับวันนี้ (ผ่าน action เดิม recordAttendance)
-        async function saveLeaveStatus(id, name, className, rowIndex) {
-            const cell = document.getElementById(`leave-cell-${rowIndex}`);
-            const checkedBox = cell.querySelector('.leave-checkbox:checked');
-            if (!checkedBox) return;
-            const status = checkedBox.dataset.status;
-            const btn = document.getElementById(`save-leave-btn-${rowIndex}`);
+        function updateSaveLeaveButtonState() {
+            const anyChecked = document.querySelectorAll('#student-table-body .leave-checkbox:checked').length > 0;
+            const btn = document.getElementById('save-all-leave-btn');
+            if (btn) btn.disabled = !anyChecked;
+        }
+
+        // ปุ่มเดียวด้านบน บันทึกทุกคนที่ติ๊กไว้พร้อมกันในครั้งเดียว (ใช้ action เดิม recordAttendanceBulk)
+        async function saveAllLeaveStatus() {
+            const checkedBoxes = Array.from(document.querySelectorAll('#student-table-body .leave-checkbox:checked'));
+            if (checkedBoxes.length === 0) return;
+            const btn = document.getElementById('save-all-leave-btn');
             btn.disabled = true;
+            const originalText = btn.innerText;
             btn.innerText = 'กำลังบันทึก...';
             const now = new Date();
             const { period } = getPeriodAndStatus(now);
-            const response = await apiCall({
-                action: 'recordAttendance',
-                data: {
-                    id, name, class: className,
+            const records = checkedBoxes.map(cb => {
+                const cell = cb.closest('[id^="leave-cell-"]');
+                return {
+                    id: cell.dataset.studentid,
+                    name: cell.dataset.name,
+                    class: cell.dataset.class,
                     timestamp: now.toISOString(),
                     location: '',
-                    status: status,
+                    status: cb.dataset.status,
                     teacher: selectedTeacher || '',
                     subject: selectedSubject || '',
                     period: period
-                }
+                };
             });
+            const response = await apiCall({ action: 'recordAttendanceBulk', data: records });
             if (response.success) {
-                btn.innerText = 'บันทึกแล้ว ✓';
-                btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-                btn.classList.add('bg-green-600');
-                cell.querySelectorAll('.leave-checkbox').forEach(cb => cb.disabled = true);
-                // ถ้าแท็บ Dashboard เปิดอยู่พอดี ให้รีเฟรชตัวเลขทันทีโดยไม่ต้องสลับแท็บไปมา
+                checkedBoxes.forEach(cb => {
+                    cb.disabled = true;
+                    cb.closest('label').classList.add('opacity-60');
+                });
+                btn.innerText = `บันทึกแล้ว ✓ (${records.length} คน)`;
+                setTimeout(() => { btn.innerText = originalText; }, 3000);
+                // ถ้าแท็บ Dashboard เปิดอยู่พอดี ให้รีเฟรชตัวเลขทันที
                 if (!document.getElementById('content-dashboard').classList.contains('hidden')) {
                     loadAttendanceDataForDashboard();
                 }
             } else {
                 alert('เกิดข้อผิดพลาด: ' + (response.error || ''));
                 btn.disabled = false;
-                btn.innerText = 'บันทึก';
+                btn.innerText = originalText;
             }
         }
 
