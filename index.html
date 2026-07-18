@@ -327,6 +327,15 @@
             ]
 };
         let teacherSubjectsList = []; // ห้องเรียน+วิชาของอาจารย์ที่ล็อกอินอยู่ (จาก TeacherSubjects sheet)
+
+        // เทียบชื่อห้องแบบยืดหยุ่น: ถือว่าเป็นห้องเดียวกันถ้าขึ้นต้นตรงกับที่เลือกไว้
+        // เช่น เลือกห้อง "ปวส.2/7" จะรวมนักศึกษาในกลุ่มย่อยอย่าง "ปวส.2/7 ก1" และ "ปวส.2/7 ก2ม6" ด้วยในคราวเดียว
+        function classMatchesRoom(studentClass, roomName) {
+            if (!studentClass || !roomName) return false;
+            const a = String(studentClass).trim();
+            const b = String(roomName).trim();
+            return a === b || a.startsWith(b);
+        }
         let selectedTeacher = localStorage.getItem('selectedTeacher') || null;
         let selectedClassroom = localStorage.getItem('selectedClassroom') || null;
         let selectedSubject = localStorage.getItem('selectedSubject') || null;
@@ -581,7 +590,7 @@
             }
             const response = await apiCall({ action: 'getStudents' });
             if (response.success) {
-                students = response.data.filter(s => s.class === selectedClassroom);
+                students = response.data.filter(s => classMatchesRoom(s.class, selectedClassroom));
                 if (students.length === 0) {
                     rosterGrid.innerHTML = `<p class="col-span-full text-center text-gray-500">ยังไม่มีข้อมูลนักเรียนในห้อง ${selectedClassroom}</p>`;
                 } else {
@@ -787,7 +796,7 @@
         async function loadStudentDataForRecognition() {
             const response = await apiCall({ action: 'getStudents' });
             if (response.success && response.data.length > 0) {
-                students = selectedClassroom ? response.data.filter(s => s.class === selectedClassroom) : response.data;
+                students = selectedClassroom ? response.data.filter(s => classMatchesRoom(s.class, selectedClassroom)) : response.data;
                 const labeledFaceDescriptors = await Promise.all(students.map(async (student) => {
                     if (student.imagedatabase64 && student.imagedatabase64.startsWith('data:image')) {
                         try {
@@ -1111,7 +1120,7 @@
              const response = await apiCall({ action: 'getAttendance' });
              if (response.success) {
                  attendance = response.data
-                    .filter(rec => !selectedClassroom || rec.class === selectedClassroom)
+                    .filter(rec => !selectedClassroom || classMatchesRoom(rec.class, selectedClassroom))
                     .map(rec => ({ ...rec, timestamp: new Date(rec.timestamp) }));
                  renderDashboard();
              }
