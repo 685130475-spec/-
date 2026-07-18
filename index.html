@@ -910,15 +910,16 @@
                     const safeName = student.name.replace(/'/g, "\\'");
                     row.innerHTML = `<td class="p-3">${student.studentid}</td><td class="p-3">${student.name}</td><td class="p-3">${student.class}</td>
                         <td class="p-3">
-                            <div class="flex items-center justify-center gap-4">
+                            <div class="flex items-center justify-center gap-3 flex-wrap" id="leave-cell-${student.rowIndex}">
                                 <label class="inline-flex items-center gap-1.5 text-base cursor-pointer select-none">
-                                    <input type="checkbox" class="w-5 h-5 accent-amber-500" onchange="markLeaveStatus('${student.studentid}', '${safeName}', '${student.class}', 'ลาป่วย', this)">
+                                    <input type="checkbox" class="w-5 h-5 accent-amber-500 leave-checkbox" data-status="ลาป่วย" onchange="onLeaveCheckboxChange(this, ${student.rowIndex})">
                                     <span>ลาป่วย</span>
                                 </label>
                                 <label class="inline-flex items-center gap-1.5 text-base cursor-pointer select-none">
-                                    <input type="checkbox" class="w-5 h-5 accent-sky-500" onchange="markLeaveStatus('${student.studentid}', '${safeName}', '${student.class}', 'ลากิจ', this)">
+                                    <input type="checkbox" class="w-5 h-5 accent-sky-500 leave-checkbox" data-status="ลากิจ" onchange="onLeaveCheckboxChange(this, ${student.rowIndex})">
                                     <span>ลากิจ</span>
                                 </label>
+                                <button type="button" id="save-leave-btn-${student.rowIndex}" disabled onclick="saveLeaveStatus('${student.studentid}', '${safeName}', '${student.class}', ${student.rowIndex})" class="text-sm bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 transition-colors">บันทึก</button>
                             </div>
                         </td>
                         <td class="p-3 text-center"><button onclick="editStudent(${student.rowIndex})" class="text-blue-600 p-1 text-base">แก้ไข</button><button onclick="deleteStudent(${student.rowIndex})" class="text-red-600 p-1 text-base">ลบ</button></td>`;
@@ -927,10 +928,25 @@
             }
         }
 
-        // ติ๊ก checkbox เพื่อบันทึกสถานะลาป่วย/ลากิจ ของนักเรียนคนนั้นสำหรับวันนี้ (ผ่าน action เดิม recordAttendance)
-        async function markLeaveStatus(id, name, className, status, checkboxEl) {
-            if (!checkboxEl.checked) return; // ไม่ลบข้อมูลอัตโนมัติเมื่อติ๊กออก ป้องกันการลบพลาด
-            if (!confirm(`ยืนยันบันทึกสถานะ "${status}" ให้ ${name} สำหรับวันนี้?`)) { checkboxEl.checked = false; return; }
+        // ติ๊กได้ทีละสถานะ (ลาป่วย หรือ ลากิจ อย่างใดอย่างหนึ่ง) แล้วค่อยกด "บันทึก" ให้ชัดเจนว่าบันทึกจริง
+        function onLeaveCheckboxChange(checkboxEl, rowIndex) {
+            const cell = document.getElementById(`leave-cell-${rowIndex}`);
+            if (checkboxEl.checked) {
+                cell.querySelectorAll('.leave-checkbox').forEach(cb => { if (cb !== checkboxEl) cb.checked = false; });
+            }
+            const anyChecked = Array.from(cell.querySelectorAll('.leave-checkbox')).some(cb => cb.checked);
+            document.getElementById(`save-leave-btn-${rowIndex}`).disabled = !anyChecked;
+        }
+
+        // กดปุ่ม "บันทึก" เพื่อบันทึกสถานะลาป่วย/ลากิจ ของนักศึกษาคนนั้นสำหรับวันนี้ (ผ่าน action เดิม recordAttendance)
+        async function saveLeaveStatus(id, name, className, rowIndex) {
+            const cell = document.getElementById(`leave-cell-${rowIndex}`);
+            const checkedBox = cell.querySelector('.leave-checkbox:checked');
+            if (!checkedBox) return;
+            const status = checkedBox.dataset.status;
+            const btn = document.getElementById(`save-leave-btn-${rowIndex}`);
+            btn.disabled = true;
+            btn.innerText = 'กำลังบันทึก...';
             const now = new Date();
             const { period } = getPeriodAndStatus(now);
             const response = await apiCall({
@@ -946,11 +962,18 @@
                 }
             });
             if (response.success) {
-                checkboxEl.disabled = true;
-                checkboxEl.closest('label').classList.add('opacity-60');
+                btn.innerText = 'บันทึกแล้ว ✓';
+                btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                btn.classList.add('bg-green-600');
+                cell.querySelectorAll('.leave-checkbox').forEach(cb => cb.disabled = true);
+                // ถ้าแท็บ Dashboard เปิดอยู่พอดี ให้รีเฟรชตัวเลขทันทีโดยไม่ต้องสลับแท็บไปมา
+                if (!document.getElementById('content-dashboard').classList.contains('hidden')) {
+                    loadAttendanceDataForDashboard();
+                }
             } else {
                 alert('เกิดข้อผิดพลาด: ' + (response.error || ''));
-                checkboxEl.checked = false;
+                btn.disabled = false;
+                btn.innerText = 'บันทึก';
             }
         }
 
@@ -1053,18 +1076,27 @@
             const selectedDate = new Date(document.getElementById('dashboard-date').value);
             selectedDate.setHours(0,0,0,0);
             const attendanceToday = attendance.filter(rec => { const recDate = new Date(rec.timestamp); recDate.setHours(0,0,0,0); return recDate.getTime() === selectedDate.getTime(); });
-            const lateTime = new Date(selectedDate); lateTime.setHours(8, 30, 0);
-            let onTimeCount = 0, lateCount = 0; const hourlyCounts = Array(24).fill(0);
-            const presentStudents = new Set();
+            let onTimeCount = 0, lateCount = 0, leaveCount = 0, absentCount = 0;
+            const hourlyCounts = Array(24).fill(0);
+            const presentStudents = new Set(), leaveStudents = new Set();
             attendanceToday.forEach(rec => {
-                if (rec.status === 'มาเรียน') { if (!presentStudents.has(rec.id)) { if (rec.timestamp > lateTime) lateCount++; else onTimeCount++; } presentStudents.add(rec.id); }
                 hourlyCounts[rec.timestamp.getHours()]++;
+                if (rec.status === 'มาเรียน' || rec.status === 'สาย' || rec.status === 'มาสาย') {
+                    // ใช้สถานะที่บันทึกไว้ตอนสแกน (คำนวณตามตารางคาบเรียนแล้ว) แทนการเทียบเวลาซ้ำแบบเดิม
+                    if (!presentStudents.has(rec.id)) {
+                        if (rec.status === 'สาย' || rec.status === 'มาสาย') lateCount++; else onTimeCount++;
+                        presentStudents.add(rec.id);
+                    }
+                } else if (rec.status === 'ลาป่วย' || rec.status === 'ลากิจ' || rec.status === 'ลา') {
+                    if (!leaveStudents.has(rec.id)) { leaveCount++; leaveStudents.add(rec.id); }
+                } else if (rec.status === 'ขาด') {
+                    absentCount++;
+                }
             });
-            const absentOrLeaveCount = attendanceToday.filter(r => r.status === 'ขาด' || r.status === 'ลา').length;
             document.getElementById('stat-present').innerText = onTimeCount + lateCount;
             document.getElementById('stat-late').innerText = lateCount;
-            document.getElementById('stat-absent').innerText = absentOrLeaveCount;
-            renderPieChart(onTimeCount, lateCount, absentOrLeaveCount);
+            document.getElementById('stat-absent').innerText = leaveCount + absentCount;
+            renderPieChart(onTimeCount, lateCount, leaveCount + absentCount);
             renderBarChart(hourlyCounts);
         }
         function renderPieChart(onTime, late, absent) {
