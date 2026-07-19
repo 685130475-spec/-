@@ -580,29 +580,55 @@
         
         // --- DASHBOARD ROSTER ---
         async function loadStudentRosterForDashboard() {
-            const rosterGrid = document.getElementById('student-roster-grid');
             const rosterLoading = document.getElementById('roster-loading');
-            rosterGrid.innerHTML = ''; rosterLoading.style.display = 'block';
+            rosterLoading.style.display = 'block';
             if (!selectedClassroom) {
-                rosterGrid.innerHTML = `<p class="col-span-full text-center text-gray-500">กรุณาเลือกห้องเรียนและวิชาที่จะสอนก่อน (ปุ่ม "เลือก/เปลี่ยนห้องเรียน-วิชา" ด้านบน)</p>`;
+                renderRosterGrid({});
                 rosterLoading.style.display = 'none';
                 return;
             }
             const response = await apiCall({ action: 'getStudents' });
             if (response.success) {
                 students = response.data.filter(s => classMatchesRoom(s.class, selectedClassroom));
-                if (students.length === 0) {
-                    rosterGrid.innerHTML = `<p class="col-span-full text-center text-gray-500">ยังไม่มีข้อมูลนักเรียนในห้อง ${selectedClassroom}</p>`;
-                } else {
-                    students.forEach(student => {
-                        const card = document.createElement('div');
-                        card.className = 'bg-gray-50 dark:bg-gray-800 p-3 rounded-lg text-center';
-                         card.innerHTML = `<img src="${student.imagedatabase64 || 'https://placehold.co/150x150/e2e8f0/475569?text=No+Image'}" class="w-24 h-24 rounded-full object-cover mx-auto mb-2 border-2 border-gray-300 dark:border-gray-600"><p class="font-semibold text-sm truncate">${student.name}</p><p class="text-xs text-gray-500">${student.studentid}</p><p class="text-xs text-gray-500">${student.class}</p>`;
-                        rosterGrid.appendChild(card);
-                    });
-                }
-            } else { rosterGrid.innerHTML = `<p class="col-span-full text-center text-red-500">ไม่สามารถโหลดข้อมูลนักศึกษาได้</p>`; }
+                renderRosterGrid({}); // แสดงรายชื่อก่อน (ยังไม่ทราบสถานะวันนี้) รอ renderDashboard() มาอัปเดตสถานะทับอีกที
+            } else {
+                document.getElementById('student-roster-grid').innerHTML = `<p class="col-span-full text-center text-red-500">ไม่สามารถโหลดข้อมูลนักศึกษาได้</p>`;
+            }
             rosterLoading.style.display = 'none';
+        }
+
+        // วาดรายชื่อนักศึกษาในห้อง พร้อม "สถานะของวันนี้" ต่อคน (มาเรียน/มาสาย/ลาป่วย/ลากิจ/ขาด/ยังไม่เช็คชื่อ)
+        function renderRosterGrid(statusMap) {
+            const rosterGrid = document.getElementById('student-roster-grid');
+            if (!selectedClassroom) {
+                rosterGrid.innerHTML = `<p class="col-span-full text-center text-gray-500">กรุณาเลือกห้องเรียนและวิชาที่จะสอนก่อน (ปุ่ม "เลือก/เปลี่ยนห้องเรียน-วิชา" ด้านบน)</p>`;
+                return;
+            }
+            if (!students || students.length === 0) {
+                rosterGrid.innerHTML = `<p class="col-span-full text-center text-gray-500">ยังไม่มีข้อมูลนักศึกษาในห้อง ${selectedClassroom}</p>`;
+                return;
+            }
+            const badgeFor = (status) => {
+                if (status === 'มาเรียน') return '<span class="inline-block mt-1 text-xs font-medium bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">มาเรียน</span>';
+                if (status === 'สาย' || status === 'มาสาย') return '<span class="inline-block mt-1 text-xs font-medium bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">มาสาย</span>';
+                if (status === 'ลาป่วย') return '<span class="inline-block mt-1 text-xs font-medium bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">ลาป่วย</span>';
+                if (status === 'ลากิจ' || status === 'ลา') return '<span class="inline-block mt-1 text-xs font-medium bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">ลากิจ</span>';
+                if (status === 'ขาด') return '<span class="inline-block mt-1 text-xs font-medium bg-red-100 text-red-700 px-2 py-0.5 rounded-full">ขาด</span>';
+                return '';
+            };
+            // แสดงเฉพาะคนที่มีการบันทึกจริงของวันที่เลือก (สแกนเข้าเรียน/มาสาย/ลา/ขาด) — ไม่เอาทั้งห้องมาโชว์เฉยๆ
+            const activeStudents = students.filter(s => statusMap[s.studentid]);
+            if (activeStudents.length === 0) {
+                rosterGrid.innerHTML = `<p class="col-span-full text-center text-gray-500">ยังไม่มีนักศึกษาคนไหนถูกบันทึกการเข้าเรียนของวันนี้เลย</p>`;
+                return;
+            }
+            rosterGrid.innerHTML = '';
+            activeStudents.forEach(student => {
+                const card = document.createElement('div');
+                card.className = 'bg-gray-50 dark:bg-gray-800 p-3 rounded-lg text-center';
+                card.innerHTML = `<img src="${student.imagedatabase64 || 'https://placehold.co/150x150/e2e8f0/475569?text=No+Image'}" class="w-24 h-24 rounded-full object-cover mx-auto mb-2 border-2 border-gray-300 dark:border-gray-600"><p class="font-semibold text-sm truncate">${student.name}</p><p class="text-xs text-gray-500">${student.studentid}</p>${badgeFor(statusMap[student.studentid])}`;
+                rosterGrid.appendChild(card);
+            });
         }
 
         // --- ATTENDANCE PROCESS ---
@@ -1132,6 +1158,10 @@
             let onTimeCount = 0, lateCount = 0, leaveCount = 0, absentCount = 0;
             const hourlyCounts = Array(24).fill(0);
             const presentStudents = new Set(), leaveStudents = new Set();
+            const statusMap = {}; // รหัสนักศึกษา -> สถานะล่าสุดของวันนี้ (ใช้แสดงในรายชื่อด้านล่าง)
+            // เรียงตามเวลาก่อน แล้วให้ค่าล่าสุดทับค่าก่อนหน้า เผื่อมีการบันทึกซ้ำ/แก้ไขสถานะระหว่างวัน
+            const sortedToday = [...attendanceToday].sort((a, b) => a.timestamp - b.timestamp);
+            sortedToday.forEach(rec => { statusMap[rec.id] = rec.status; });
             attendanceToday.forEach(rec => {
                 hourlyCounts[rec.timestamp.getHours()]++;
                 if (rec.status === 'มาเรียน' || rec.status === 'สาย' || rec.status === 'มาสาย') {
@@ -1151,6 +1181,7 @@
             document.getElementById('stat-absent').innerText = leaveCount + absentCount;
             renderPieChart(onTimeCount, lateCount, leaveCount + absentCount);
             renderBarChart(hourlyCounts);
+            renderRosterGrid(statusMap); // อัปเดตรายชื่อด้านล่างให้โชว์สถานะของวันที่เลือกต่อคน
         }
         function renderPieChart(onTime, late, absent) {
             const pieCanvas = document.getElementById('attendance-pie-chart');
