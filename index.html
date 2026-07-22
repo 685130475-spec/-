@@ -159,7 +159,7 @@
 
             <!-- Attendance Tab -->
             <div id="content-attendance" class="hidden space-y-6">
-                <div id="start-scan-section" class="text-center bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md"><h2 class="text-2xl font-bold mb-4">เริ่มการเช็คชื่อ</h2><p class="text-gray-600 dark:text-gray-400 mb-6">กดปุ่มด้านล่างเพื่อเริ่มเปิดกล้องและสแกนใบหน้า</p><button onclick="startScanning()" class="bg-blue-600 text-white px-8 py-3 rounded-full hover:bg-blue-700 text-lg font-semibold flex items-center justify-center mx-auto gap-2"><i data-lucide="camera"></i><span>เริ่มเช็คชื่อ</span></button></div>
+                <div id="start-scan-section" class="text-center bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md"><h2 class="text-2xl font-bold mb-4">เริ่มการเช็คชื่อ</h2><p class="text-gray-600 dark:text-gray-400 mb-6">กดปุ่มด้านล่างเพื่อเริ่มเปิดกล้องและสแกนใบหน้า</p><button id="btn-start-scan" onclick="startScanning()" class="bg-blue-600 text-white px-8 py-3 rounded-full hover:bg-blue-700 text-lg font-semibold flex items-center justify-center mx-auto gap-2"><i data-lucide="camera"></i><span>เริ่มเช็คชื่อ</span></button></div>
                 
                 <div id="scanning-section" class="hidden space-y-6">
                     <div class="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md flex flex-col items-center">
@@ -632,12 +632,22 @@
         }
 
         // --- ATTENDANCE PROCESS ---
-        function startScanning() {
+        async function startScanning() {
             if (!selectedClassroom || !selectedSubject) {
                 alert('กรุณาเลือกห้องเรียนและวิชาที่จะสอนก่อน (ปุ่ม "เลือก/เปลี่ยนห้องเรียน-วิชา" ด้านบน)');
                 toggleRoomPicker();
                 return;
             }
+            // โหลดข้อมูลใบหน้าล่าสุดใหม่ทุกครั้งที่กดเริ่ม กันปัญหาข้อมูลเก่า/โหลดไม่ทันตอนเพิ่งสลับแท็บมาหรือเพิ่งเพิ่มรูปไป
+            const startBtn = document.getElementById('btn-start-scan');
+            const originalBtnHtml = startBtn.innerHTML;
+            startBtn.disabled = true;
+            startBtn.innerHTML = '<span>กำลังโหลดข้อมูลใบหน้า...</span>';
+            await loadStudentDataForRecognition();
+            startBtn.disabled = false;
+            startBtn.innerHTML = originalBtnHtml;
+            lucide.createIcons();
+
             if (!faceMatcher) {
                 alert('ยังไม่มีข้อมูลใบหน้านักศึกษาที่ใช้เทียบได้ในห้องนี้ กรุณาตรวจสอบว่านักศึกษาในห้อง ' + selectedClassroom + ' มีการถ่าย/อัปโหลดรูปใบหน้าไว้แล้ว (ไปที่แท็บ "จัดการข้อมูล")');
                 return;
@@ -896,7 +906,7 @@
                     canvas.width = MAX_WIDTH; canvas.height = img.height * scaleSize;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    const dataUrl = canvas.toDataURL('image/jpeg');
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
                     document.getElementById('image-preview').src = dataUrl;
                     document.getElementById('image-preview').classList.remove('hidden');
                     document.getElementById('student-image-data').value = dataUrl;
@@ -963,10 +973,15 @@
                 alert('กรุณาเปิดกล้องก่อนถ่ายภาพ');
                 return;
             }
+            // ย่อขนาดภาพก่อนแปลงเป็น base64 เหมือนฝั่งอัปโหลดไฟล์ (เดิมจุดนี้ไม่ย่อเลย ใช้ความละเอียดกล้องเต็มๆ
+            // ทำให้ไฟล์ใหญ่เกินไปจนส่งไป Apps Script ไม่สำเร็จ โดยเฉพาะบนมือถือ/เน็ตมือถือ เจอ error "Load failed")
+            const MAX_WIDTH = 500;
+            const scaleSize = MAX_WIDTH / videoEl.videoWidth;
             const canvas = document.getElementById('capture-canvas');
-            canvas.width = videoEl.videoWidth; canvas.height = videoEl.videoHeight;
+            canvas.width = MAX_WIDTH;
+            canvas.height = videoEl.videoHeight * scaleSize;
             canvas.getContext('2d').drawImage(videoEl, 0, 0, canvas.width, canvas.height);
-            document.getElementById('student-image-data').value = canvas.toDataURL('image/jpeg');
+            document.getElementById('student-image-data').value = canvas.toDataURL('image/jpeg', 0.8);
             alert('ถ่ายภาพเรียบร้อยแล้ว');
         }
         async function loadStudentDataForTable() {
@@ -1212,7 +1227,11 @@
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 return await response.json();
-            } catch (error) { console.error('API Call Error:', error); alert(`เกิดข้อผิดพลาดในการเชื่อมต่อกับ Server:\n${error.message}\nกรุณาตรวจสอบ Console (F12) สำหรับข้อมูลเพิ่มเติม`); return { success: false, error: error.message }; }
+            } catch (error) {
+                console.error('API Call Error:', error);
+                alert(`เกิดข้อผิดพลาดในการเชื่อมต่อกับ Server:\n${error.message}\n\nถ้ากำลังบันทึกรูปภาพ: อาจเป็นเพราะไฟล์รูปใหญ่เกินไปหรือสัญญาณเน็ตไม่เสถียร ลองถ่ายภาพใหม่ในที่ที่สัญญาณดีขึ้น หรือลองใหม่อีกครั้ง`);
+                return { success: false, error: error.message };
+            }
         }
     </script>
 </body>
