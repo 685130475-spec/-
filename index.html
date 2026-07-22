@@ -197,10 +197,10 @@
 
                 <div id="absence-management-section" class="hidden bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md">
                     <h2 class="text-xl font-bold mb-4">สรุปผลการเช็คชื่อ</h2>
-                    <p class="text-gray-600 dark:text-gray-400 mb-4">ตรวจสอบสถานะของนักศึกษาและกดบันทึกเพื่อยืนยัน</p>
+                    <p class="text-gray-600 dark:text-gray-400 mb-4">ข้อมูลถูกบันทึกเข้าระบบทันทีตั้งแต่ตอนสแกนแล้ว หน้านี้แสดงสรุปผลของรอบนี้เท่านั้น</p>
                     <div id="absent-list" class="space-y-3 max-h-80 overflow-y-auto custom-scrollbar pr-2"></div>
                     <div class="text-right mt-6">
-                        <button onclick="finishAttendance()" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700">บันทึกและเสร็จสิ้น</button>
+                        <button onclick="closeAttendanceSummary()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">ปิด</button>
                     </div>
                 </div>
             </div>
@@ -694,13 +694,12 @@
                 students.forEach(student => {
                     const checkedInRecord = checkedInToday.get(student.studentid);
                     let statusHtml;
-
-                    if (checkedInRecord && checkedInRecord.status === 'มาเรียน') {
-                        statusHtml = `<p class="font-semibold text-sm text-green-500">สถานะ: มาเรียน (สแกนแล้ว)</p>`;
+                    if (checkedInRecord) {
+                        const isLate = checkedInRecord.status === 'สาย';
+                        statusHtml = `<span class="text-xs font-medium ${isLate ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-blue-700'} px-2 py-1 rounded-full">${isLate ? 'มาสาย' : 'มาเรียน'} (บันทึกแล้ว)</span>`;
                     } else {
-                        statusHtml = `<div class="flex gap-2" id="status-buttons-${student.studentid}"><button onclick="markStatus('${student.studentid}', 'ขาด')" class="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-full hover:bg-red-200 dark:bg-red-900/50 dark:text-red-300">ขาด</button><button onclick="markStatus('${student.studentid}', 'ลา')" class="px-3 py-1 text-sm bg-yellow-100 text-yellow-700 rounded-full hover:bg-yellow-200 dark:bg-yellow-900/50 dark:text-yellow-300">ลา</button></div>`;
+                        statusHtml = `<span class="text-xs font-medium bg-gray-100 text-gray-500 px-2 py-1 rounded-full">ยังไม่ได้เช็คชื่อรอบนี้</span>`;
                     }
-
                     const item = document.createElement('div');
                     item.className = 'flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg';
                     item.innerHTML = `<div class="flex items-center gap-3"><img src="${student.imagedatabase64 || 'https://placehold.co/40x40'}" class="w-10 h-10 rounded-full object-cover"><div><p class="font-medium">${student.name}</p><p class="text-sm text-gray-500">${student.studentid}</p></div></div>${statusHtml}`;
@@ -711,46 +710,14 @@
             }
         }
 
-        function markStatus(studentId, status) {
-            const student = students.find(s => s.studentid === studentId);
-            if (!student) return;
-            const record = { id: student.studentid, name: student.name, class: student.class, timestamp: new Date().toISOString(), location: currentGeoLocation ? `${currentGeoLocation.lat},${currentGeoLocation.lng}` : 'N/A', status: status, teacher: selectedTeacher, subject: selectedSubject };
-            checkedInToday.set(studentId, record);
-            const buttonContainer = document.getElementById(`status-buttons-${studentId}`);
-            if (buttonContainer) {
-                buttonContainer.innerHTML = `<p class="font-semibold text-sm ${status === 'ขาด' ? 'text-red-500' : 'text-yellow-500'}">บันทึกเป็น: ${status}</p>`;
-            }
-        }
-        
-        async function finishAttendance() {
-            const recordsToSave = [];
-            const timestamp = new Date().toISOString();
-            const location = currentGeoLocation ? `${currentGeoLocation.lat},${currentGeoLocation.lng}` : 'N/A';
-
-            students.forEach(student => {
-                if (checkedInToday.has(student.studentid)) {
-                    recordsToSave.push(checkedInToday.get(student.studentid));
-                } else {
-                    const absentRecord = { id: student.studentid, name: student.name, class: student.class, timestamp, location, status: 'ขาด', teacher: selectedTeacher, subject: selectedSubject };
-                    recordsToSave.push(absentRecord);
-                }
-            });
-
-            if (recordsToSave.length > 0) {
-                const response = await apiCall({ action: 'recordAttendanceBulk', data: recordsToSave });
-                if (response.success) {
-                    alert('บันทึกข้อมูลการเช็คชื่อทั้งหมดเรียบร้อยแล้ว');
-                } else {
-                    alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล กรุณาลองใหม่อีกครั้ง');
-                }
-            } else {
-                alert('ไม่มีข้อมูลนักศึกษาให้บันทึก');
-            }
-
-            checkedInToday.clear();
+        // ปิดสรุปผล (ไม่ต้องบันทึกอะไรอีกแล้ว เพราะข้อมูลถูกบันทึกขึ้น server ทันทีตั้งแต่ตอนสแกนแล้ว)
+        function closeAttendanceSummary() {
             document.getElementById('absence-management-section').classList.add('hidden');
             document.getElementById('start-scan-section').classList.remove('hidden');
-            switchTab('dashboard');
+            // ถ้าแท็บ Dashboard เปิดอยู่พอดี (เผื่อสลับหน้าไปมา) ให้รีเฟรชตัวเลขทันที ไม่ต้องรอผู้ใช้กด refresh เอง
+            if (!document.getElementById('content-dashboard').classList.contains('hidden')) {
+                loadStudentRosterForDashboard(); loadAttendanceDataForDashboard();
+            }
         }
 
         async function startVideo() {
@@ -862,11 +829,11 @@
             } else { faceMatcher = null; console.log('No student data found for recognition.'); }
         }
         
-        function handleRecognition(student) {
+        async function handleRecognition(student) {
             const now = new Date();
             const { period, status } = getPeriodAndStatus(now);
-            const record = { id: student.studentid, name: student.name, class: student.class, timestamp: now.toISOString(), location: currentGeoLocation ? `${currentGeoLocation.lat},${currentGeoLocation.lng}` : 'N/A', status: status, period: period, teacher: selectedTeacher, subject: selectedSubject };
-            checkedInToday.set(student.studentid, record);
+            const record = { id: student.studentid, name: student.name, class: student.class, timestamp: now.toISOString(), location: currentGeoLocation ? `${currentGeoLocation.lat},${currentGeoLocation.lng}` : 'N/A', status: status, period: period, teacher: selectedTeacher || '', subject: selectedSubject || '' };
+            checkedInToday.set(student.studentid, record); // กันสแกนซ้ำคนเดิมในรอบการสแกนนี้
 
             const successOverlay = document.getElementById('scan-success-overlay');
             const successName = document.getElementById('scan-success-name');
@@ -881,6 +848,15 @@
             setTimeout(() => {
                 successOverlay.classList.add('hidden');
             }, 2500);
+
+            // บันทึกขึ้น Google Sheet ทันทีตอนสแกนติด ไม่ต้องรอกด "บันทึกและเสร็จสิ้น" อีกต่อไป
+            // (เดิมข้อมูลถูกเก็บไว้แค่ในเครื่องจนกว่าจะกดปุ่มจบการสแกน ถ้าลืมกดหรือปิดหน้าไปก่อน ข้อมูลทั้งหมดจะหายไม่ถูกบันทึกเลย)
+            const response = await apiCall({ action: 'recordAttendance', data: record });
+            if (!response.success) {
+                console.error('บันทึกไม่สำเร็จสำหรับ', student.name, response.error);
+                alert(`บันทึกข้อมูลของ ${student.name} ไม่สำเร็จ: ${response.error || 'ไม่ทราบสาเหตุ'} กรุณาลองสแกนใหม่อีกครั้ง`);
+                checkedInToday.delete(student.studentid); // ให้สแกนซ้ำได้อีกครั้งถ้าบันทึกไม่สำเร็จ
+            }
         }
 
         // แสดงข้อความเตือนเมื่อเจอใบหน้าแต่ไม่ตรงกับข้อมูลนักศึกษาคนไหนในระบบเลย (ยังไม่เคยลงทะเบียนใบหน้า)
