@@ -170,7 +170,7 @@
                         </div>
                         <div class="w-full max-w-4xl mx-auto bg-black rounded-lg overflow-hidden relative aspect-video hidden" id="video-wrapper">
                             <video id="video" class="w-full h-full mirrored-feed" autoplay muted playsinline></video>
-                            <canvas id="overlay" class="absolute top-0 left-0 mirrored-feed"></canvas>
+                            <canvas id="overlay" class="absolute top-0 left-0"></canvas>
                             <!-- กรอบแนะนำตำแหน่งวางใบหน้า (แสดงตลอดเวลาที่กล้องเปิด ไม่ขึ้นกับผลตรวจจับ) -->
                             <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
                                 <div class="w-[42%] aspect-[3/4] border-4 border-dashed border-white/70 rounded-[50%]"></div>
@@ -788,15 +788,28 @@
                     const detections = await faceapi.detectAllFaces(video, new faceapi.SsdMobilenetv1Options()).withFaceLandmarks().withFaceDescriptors();
                     if (!isScanning) return; // เช็คซ้ำเผื่อผู้ใช้กดหยุดระหว่างกำลังประมวลผลอยู่
                     const resizedDetections = faceapi.resizeResults(detections, displaySize);
-                    overlay.getContext('2d').clearRect(0, 0, overlay.width, overlay.height);
+                    const ctx = overlay.getContext('2d');
+                    ctx.clearRect(0, 0, overlay.width, overlay.height);
                     if (faceMatcher) {
                         const results = resizedDetections.map(d => faceMatcher.findBestMatch(d.descriptor));
                         let hasUnknownFace = false;
                         results.forEach((result, i) => {
                             const box = resizedDetections[i].detection.box;
                             const isUnknown = result.label === 'unknown';
-                            const drawBox = new faceapi.draw.DrawBox(box, { label: result.toString(), boxColor: isUnknown ? '#f59e0b' : '#22c55e' });
-                            drawBox.draw(overlay);
+                            const color = isUnknown ? '#f59e0b' : '#22c55e';
+                            const label = result.toString();
+                            // วาดกรอบเองแบบกลับด้าน X ให้ตรงกับวิดีโอที่ mirror ไว้ แต่ตัวอักษรไม่กลับด้าน (อ่านออกปกติ)
+                            // เดิมใช้ CSS mirror ทั้ง canvas ทำให้ตัวหนังสือกลับด้านอ่านไม่ออกไปด้วย
+                            const mirroredX = overlay.width - box.x - box.width;
+                            ctx.strokeStyle = color;
+                            ctx.lineWidth = 2;
+                            ctx.strokeRect(mirroredX, box.y, box.width, box.height);
+                            ctx.font = '16px Sarabun, sans-serif';
+                            const textWidth = ctx.measureText(label).width;
+                            ctx.fillStyle = color;
+                            ctx.fillRect(mirroredX, box.y - 20, textWidth + 10, 20);
+                            ctx.fillStyle = '#ffffff';
+                            ctx.fillText(label, mirroredX + 5, box.y - 5);
                             if (isUnknown) {
                                 hasUnknownFace = true;
                             } else {
@@ -901,12 +914,12 @@
             reader.onload = (e) => {
                 const img = new Image();
                 img.onload = () => {
-                    const canvas = document.createElement('canvas'), MAX_WIDTH = 500;
+                    const canvas = document.createElement('canvas'), MAX_WIDTH = 380;
                     const scaleSize = MAX_WIDTH / img.width;
                     canvas.width = MAX_WIDTH; canvas.height = img.height * scaleSize;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
                     document.getElementById('image-preview').src = dataUrl;
                     document.getElementById('image-preview').classList.remove('hidden');
                     document.getElementById('student-image-data').value = dataUrl;
@@ -975,13 +988,13 @@
             }
             // ย่อขนาดภาพก่อนแปลงเป็น base64 เหมือนฝั่งอัปโหลดไฟล์ (เดิมจุดนี้ไม่ย่อเลย ใช้ความละเอียดกล้องเต็มๆ
             // ทำให้ไฟล์ใหญ่เกินไปจนส่งไป Apps Script ไม่สำเร็จ โดยเฉพาะบนมือถือ/เน็ตมือถือ เจอ error "Load failed")
-            const MAX_WIDTH = 500;
+            const MAX_WIDTH = 380;
             const scaleSize = MAX_WIDTH / videoEl.videoWidth;
             const canvas = document.getElementById('capture-canvas');
             canvas.width = MAX_WIDTH;
             canvas.height = videoEl.videoHeight * scaleSize;
             canvas.getContext('2d').drawImage(videoEl, 0, 0, canvas.width, canvas.height);
-            document.getElementById('student-image-data').value = canvas.toDataURL('image/jpeg', 0.8);
+            document.getElementById('student-image-data').value = canvas.toDataURL('image/jpeg', 0.7);
             alert('ถ่ายภาพเรียบร้อยแล้ว');
         }
         async function loadStudentDataForTable() {
@@ -1136,6 +1149,11 @@
             const studentData = { rowIndex: document.getElementById('student-row-index').value, id: document.getElementById('student-id').value, name: document.getElementById('student-name').value, class: document.getElementById('student-class').value, imageData: document.getElementById('student-image-data').value };
             if (!studentData.imageData) { alert('กรุณาถ่ายภาพหรืออัปโหลดรูปภาพ');
             submitBtn.disabled = false; submitBtn.innerText = 'บันทึก'; return; }
+            // Google Sheets จำกัดความยาวข้อความไว้ที่ 50,000 ตัวอักษรต่อ 1 ช่อง เช็คก่อนส่งกันบันทึกไม่สำเร็จแบบเงียบๆ
+            if (studentData.imageData.length > 45000) {
+                alert('รูปภาพมีขนาดใหญ่เกินไป (Google Sheets รับได้ไม่เกิน 50,000 ตัวอักษรต่อช่อง) กรุณาถ่ายภาพใหม่ หรือใช้รูปที่มีรายละเอียดน้อยลง/ไฟล์เล็กลง');
+                submitBtn.disabled = false; submitBtn.innerText = 'บันทึก'; return;
+            }
             const action = studentData.rowIndex ? 'updateStudent' : 'addStudent';
             const response = await apiCall({ action, data: studentData });
             if (response.success) { closeStudentModal(); loadStudentDataForTable(); } else { alert('Error: ' + response.error); }
