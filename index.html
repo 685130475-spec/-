@@ -252,8 +252,13 @@
                     return { period: p.period, status: nowMin > lateCutoff ? 'สาย' : 'มาเรียน' };
                 }
             }
-            // นอกช่วงคาบเรียนทั้งหมด (มาก่อน 08:30 หรือหลัง 16:10) ถือว่ามาเรียนตามปกติ ไม่ระบุคาบ
-            return { period: '', status: 'มาเรียน' };
+            // มาก่อนคาบแรกเริ่ม (ก่อน 08:30) ยังไม่ถึงเวลาเรียน ถือว่ามาเรียนปกติ ไม่นับว่าสาย
+            const firstPeriodStart = timeStrToMinutes(CLASS_PERIODS[0].start);
+            if (nowMin < firstPeriodStart) {
+                return { period: '', status: 'มาเรียน' };
+            }
+            // มาหลังคาบสุดท้ายจบไปแล้ว (หลัง 16:10) เกินเวลาเรียนทั้งหมดของวันไปแล้ว ต้องถือว่าสายมาก ไม่ใช่ "มาเรียนปกติ" แบบเดิม
+            return { period: '', status: 'สาย' };
         }
         let isScanning = false, captureStream = null;
         let lastUnknownFaceAlert = 0;
