@@ -36,8 +36,6 @@
         .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; }
         .animate-fade-in { animation: fadeIn 0.5s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-        /* กลับด้านภาพกล้อง (แนวกระจก) ให้ซ้าย-ขวาตรงกับที่คนยืนจริง เดินซ้ายก็เห็นซ้าย เดินขวาก็เห็นขวา */
-        .mirrored-feed { transform: scaleX(-1); }
     </style>
 </head>
 <body class="bg-sky-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300">
@@ -169,7 +167,7 @@
                             <p id="video-loading-text" class="mt-4 text-gray-600 dark:text-gray-400">กำลังเปิดกล้อง...</p>
                         </div>
                         <div class="w-full max-w-4xl mx-auto bg-black rounded-lg overflow-hidden relative aspect-video hidden" id="video-wrapper">
-                            <video id="video" class="w-full h-full mirrored-feed" autoplay muted playsinline></video>
+                            <video id="video" class="w-full h-full" autoplay muted playsinline></video>
                             <canvas id="overlay" class="absolute top-0 left-0"></canvas>
                             <!-- กรอบแนะนำตำแหน่งวางใบหน้า (แสดงตลอดเวลาที่กล้องเปิด ไม่ขึ้นกับผลตรวจจับ) -->
                             <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -344,6 +342,19 @@
         let selectedTeacher = localStorage.getItem('selectedTeacher') || null;
         let selectedClassroom = localStorage.getItem('selectedClassroom') || null;
         let selectedSubject = localStorage.getItem('selectedSubject') || null;
+
+        // ให้เลือกห้องเรียน/วิชาใหม่ทุกวัน (กันปัญหาเปิดมาแล้วค้างห้อง/วิชาของเมื่อวานตลอด) — ส่วนชื่ออาจารย์ยังจำไว้เหมือนเดิมเพราะไม่ค่อยเปลี่ยน
+        (function resetRoomSelectionDaily() {
+            const todayStr = new Date().toDateString();
+            const lastRoomDate = localStorage.getItem('roomSelectionDate');
+            if (lastRoomDate !== todayStr) {
+                selectedClassroom = null;
+                selectedSubject = null;
+                localStorage.removeItem('selectedClassroom');
+                localStorage.removeItem('selectedSubject');
+                localStorage.setItem('roomSelectionDate', todayStr);
+            }
+        })();
         
         // --- THEME ---
         function applyTheme(theme) {
@@ -648,7 +659,17 @@
             const originalBtnHtml = startBtn.innerHTML;
             startBtn.disabled = true;
             startBtn.innerHTML = '<span>กำลังโหลดข้อมูลใบหน้า...</span>';
-            await loadStudentDataForRecognition();
+            try {
+                await loadStudentDataForRecognition();
+            } catch (err) {
+                // กันปุ่มค้างถ้าโหลดข้อมูลใบหน้าพัง (เช่น เน็ตหลุดกลางทาง) แทนที่จะค้างคำว่า "กำลังโหลด..." ตลอดไป
+                console.error('loadStudentDataForRecognition failed:', err);
+                startBtn.disabled = false;
+                startBtn.innerHTML = originalBtnHtml;
+                lucide.createIcons();
+                alert('โหลดข้อมูลใบหน้าไม่สำเร็จ (อาจเป็นเพราะสัญญาณเน็ตหลุด) กรุณาลองกดใหม่อีกครั้ง');
+                return;
+            }
             startBtn.disabled = false;
             startBtn.innerHTML = originalBtnHtml;
             lucide.createIcons();
@@ -731,7 +752,9 @@
             
             const videoLoadingText = document.getElementById('video-loading-text');
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                // ใช้กล้องหลัง (rear/environment) เพราะเป็นกล้องสำหรับถ่ายนักศึกษาที่ยืนอยู่หน้าเครื่อง ไม่ใช่การเซลฟี่ตัวเอง
+                // ไม่ต้อง mirror ภาพด้วย เพราะกล้องหลังถ่ายคนอื่นตามธรรมชาติอยู่แล้ว ไม่ใช่ภาพสะท้อนกระจกแบบกล้องหน้า
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } } });
                 video.srcObject = stream;
             } catch (err) {
                 console.error('CRITICAL ERROR starting video stream:', err.name, err.message);
@@ -770,18 +793,16 @@
                             const isUnknown = result.label === 'unknown';
                             const color = isUnknown ? '#f59e0b' : '#22c55e';
                             const label = result.toString();
-                            // วาดกรอบเองแบบกลับด้าน X ให้ตรงกับวิดีโอที่ mirror ไว้ แต่ตัวอักษรไม่กลับด้าน (อ่านออกปกติ)
-                            // เดิมใช้ CSS mirror ทั้ง canvas ทำให้ตัวหนังสือกลับด้านอ่านไม่ออกไปด้วย
-                            const mirroredX = overlay.width - box.x - box.width;
+                            // วาดกรอบตำแหน่งจริงตามที่ face-api ตรวจจับได้เลย ไม่ต้องกลับด้านแล้ว เพราะวิดีโอไม่ mirror อีกต่อไป (ใช้กล้องหลังถ่ายคนอื่น)
                             ctx.strokeStyle = color;
                             ctx.lineWidth = 2;
-                            ctx.strokeRect(mirroredX, box.y, box.width, box.height);
+                            ctx.strokeRect(box.x, box.y, box.width, box.height);
                             ctx.font = '16px Sarabun, sans-serif';
                             const textWidth = ctx.measureText(label).width;
                             ctx.fillStyle = color;
-                            ctx.fillRect(mirroredX, box.y - 20, textWidth + 10, 20);
+                            ctx.fillRect(box.x, box.y - 20, textWidth + 10, 20);
                             ctx.fillStyle = '#ffffff';
-                            ctx.fillText(label, mirroredX + 5, box.y - 5);
+                            ctx.fillText(label, box.x + 5, box.y - 5);
                             if (isUnknown) {
                                 hasUnknownFace = true;
                             } else {
@@ -1220,16 +1241,23 @@
             if (!gasWebAppUrl) { alert('กรุณาตั้งค่า Google Apps Script URL ก่อน');
             return { success: false, error: 'GAS URL not configured' };
             }
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 20000); // กันค้างตลอดไปถ้าเน็ตหลุด/ช้ามาก ตัดจบหลัง 20 วินาที
             try {
-                const response = await fetch(gasWebAppUrl, { method: 'POST', mode: 'cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) });
+                const response = await fetch(gasWebAppUrl, { method: 'POST', mode: 'cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload), signal: controller.signal });
+                clearTimeout(timeoutId);
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 return await response.json();
             } catch (error) {
+                clearTimeout(timeoutId);
                 console.error('API Call Error:', error);
-                alert(`เกิดข้อผิดพลาดในการเชื่อมต่อกับ Server:\n${error.message}\n\nถ้ากำลังบันทึกรูปภาพ: อาจเป็นเพราะไฟล์รูปใหญ่เกินไปหรือสัญญาณเน็ตไม่เสถียร ลองถ่ายภาพใหม่ในที่ที่สัญญาณดีขึ้น หรือลองใหม่อีกครั้ง`);
-                return { success: false, error: error.message };
+                const isTimeout = error.name === 'AbortError';
+                alert(isTimeout
+                    ? 'การเชื่อมต่อกับ Server ใช้เวลานานเกินไป (เกิน 20 วินาที) สัญญาณเน็ตอาจไม่เสถียร กรุณาลองใหม่อีกครั้ง'
+                    : `เกิดข้อผิดพลาดในการเชื่อมต่อกับ Server:\n${error.message}\n\nถ้ากำลังบันทึกรูปภาพ: อาจเป็นเพราะไฟล์รูปใหญ่เกินไปหรือสัญญาณเน็ตไม่เสถียร ลองถ่ายภาพใหม่ในที่ที่สัญญาณดีขึ้น หรือลองใหม่อีกครั้ง`);
+                return { success: false, error: isTimeout ? 'Request timed out' : error.message };
             }
         }
     </script>
