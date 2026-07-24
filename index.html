@@ -410,6 +410,11 @@
             // ถ้ายังไม่เคยเลือกห้อง/วิชา ให้เปิดแผงเลือกไว้เลยตั้งแต่เข้ามาครั้งแรก
             if (!selectedClassroom || !selectedSubject) {
                 document.getElementById('room-picker-panel').classList.remove('hidden');
+            } else {
+                // ห้อง/วิชาถูกเลือกไว้แล้ว (เช่น ล็อกอินซ้ำวันเดียวกัน) — แท็บ Dashboard เป็นแท็บเริ่มต้นที่มองเห็นอยู่แล้ว
+                // แต่ปกติข้อมูลจะโหลดก็ต่อเมื่อกดแท็บเองเท่านั้น ถ้าไม่โหลดตรงนี้ด้วย รายชื่อ/สถิติจะดูเหมือนหายไปทั้งที่จริงมีข้อมูลอยู่
+                loadStudentRosterForDashboard();
+                loadAttendanceDataForDashboard();
             }
         }
 
