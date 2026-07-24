@@ -66,6 +66,7 @@
                 <nav class="flex items-center flex-wrap justify-center space-x-1 md:space-x-2 bg-sky-50 dark:bg-gray-700 p-1 rounded-lg">
                     <button onclick="switchTab('dashboard')" id="tab-dashboard" class="px-3 py-1.5 text-sm font-medium rounded-md">Dashboard</button>
                     <button onclick="switchTab('attendance')" id="tab-attendance" class="px-3 py-1.5 text-sm font-medium rounded-md">เช็คชื่อ</button>
+                    <button onclick="switchTab('history')" id="tab-history" class="px-3 py-1.5 text-sm font-medium rounded-md">ประวัติ</button>
                     <button onclick="switchTab('manage')" id="tab-manage" class="px-3 py-1.5 text-sm font-medium rounded-md">จัดการข้อมูล</button>
                 </nav>
                 <button onclick="toggleTheme()" type="button" class="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-sm p-2.5">
@@ -203,6 +204,37 @@
                 </div>
             </div>
 
+            <!-- History Tab -->
+            <div id="content-history" class="hidden space-y-4">
+                <div class="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md">
+                    <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">ประวัติการเช็คชื่อย้อนหลัง</h2>
+                    <div class="flex flex-wrap items-end gap-3 mb-4">
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">จากวันที่</label>
+                            <input type="date" id="history-date-from" class="px-3 py-2 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 rounded-lg text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">ถึงวันที่</label>
+                            <input type="date" id="history-date-to" class="px-3 py-2 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 rounded-lg text-sm">
+                        </div>
+                        <div class="flex-1 min-w-[150px]">
+                            <label class="block text-xs text-gray-500 mb-1">ค้นหาชื่อ/รหัส (ไม่บังคับ)</label>
+                            <input type="text" id="history-search-input" placeholder="พิมพ์เพื่อค้นหา..." class="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 rounded-lg text-sm">
+                        </div>
+                        <button onclick="loadAttendanceHistory()" class="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 text-sm font-medium">ค้นหา</button>
+                    </div>
+                    <p id="history-summary" class="text-sm text-gray-500 mb-3"></p>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left min-w-[700px] text-sm">
+                            <thead class="bg-gray-50 dark:bg-gray-700/50">
+                                <tr><th class="p-3">วันที่</th><th class="p-3">เวลา</th><th class="p-3">รหัส</th><th class="p-3">ชื่อ-สกุล</th><th class="p-3">คาบ</th><th class="p-3">สถานะ</th><th class="p-3">วิชา</th></tr>
+                            </thead>
+                            <tbody id="history-table-body" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
             <!-- Manage Students Tab -->
             <div id="content-manage" class="hidden">
                  <div class="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md"><div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-2"><h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300">จัดการข้อมูลนักศึกษา</h2><div class="flex items-center gap-2 w-full sm:w-auto"><button onclick="document.getElementById('import-file-input').click()" class="bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-2 rounded-lg hover:bg-emerald-100 flex items-center space-x-2 flex-1 sm:flex-none justify-center"><i data-lucide="upload"></i><span>นำเข้าข้อมูล (CSV/Excel)</span></button><input type="file" id="import-file-input" accept=".csv,.xlsx,.xls" class="hidden"><button id="save-all-leave-btn" disabled onclick="saveAllLeaveStatus()" class="bg-amber-500 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg hover:bg-amber-600 flex items-center space-x-2 flex-1 sm:flex-none justify-center transition-colors"><i data-lucide="save"></i><span>บันทึกการลา</span></button><button onclick="openStudentModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2 flex-1 sm:flex-none justify-center"><i data-lucide="user-plus"></i><span>เพิ่มนักศึกษา</span></button></div></div><div class="overflow-x-auto"><table class="w-full text-left min-w-[700px] text-base"><thead class="bg-gray-50 dark:bg-gray-700/50"><tr><th class="p-3">รหัสนักศึกษา</th><th class="p-3">ชื่อ-สกุล</th><th class="p-3">ชั้นเรียน</th><th class="p-3 text-center">บันทึกลาวันนี้</th><th class="p-3 text-center">จัดการ</th></tr></thead><tbody id="student-table-body" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody></table></div></div>
@@ -217,6 +249,7 @@
         // --- GLOBAL STATE & CONFIG ---
         const gasWebAppUrl = 'https://script.google.com/macros/s/AKfycbwO-J9lL0WwbWGGbD9v1oGVammWExJpjYTvZBTs4MUA0ZlWnyjceRYSqvi6G2Ncmtmhvg/exec';
         let faceMatcher = null, pieChart, barChart;
+        let modelsLoadedPromise = null; // ติดตามสถานะการโหลดโมเดล AI ที่ตอนนี้ทำงานพื้นหลังตั้งแต่เข้าแอป
         let students = [], attendance = [], checkedInToday = new Map();
 
         // ตารางคาบเรียน: คาบเริ่มกี่โมง และเกินกี่นาทีถึงถือว่า "สาย" (เผื่อเวลา 15 นาทีทุกคาบ)
@@ -400,7 +433,10 @@
             document.getElementById('screen-teacher').classList.add('hidden');
             document.getElementById('app-main').classList.remove('hidden');
             updateSessionLabels();
-            await initializeApp();
+            // โหลดโมเดล AI (ไฟล์ขนาดหลาย MB) แบบพื้นหลัง ไม่ต้องรอให้เสร็จก่อนถึงจะเข้าแดชบอร์ดได้
+            // เพราะโมเดลจำเป็นแค่ตอนกดเช็คชื่อ (ดูใน startScanning ที่จะรอ modelsLoadedPromise เองตอนนั้น)
+            // เดิมรอโหลดโมเดลเสร็จก่อนเสมอ ทำให้เข้าแอปช้าเกินความจำเป็นทุกครั้งแม้จะแค่มาดู Dashboard
+            modelsLoadedPromise = initializeApp();
             getLocation();
             document.getElementById('dashboard-date').valueAsDate = new Date();
             document.getElementById('dashboard-date').addEventListener('change', () => { loadAttendanceDataForDashboard(); });
@@ -579,7 +615,7 @@
             stopCaptureVideo(); 
             stopScanning(false);
 
-            ['dashboard', 'attendance', 'manage'].forEach(name => {
+            ['dashboard', 'attendance', 'history', 'manage'].forEach(name => {
                 document.getElementById(`content-${name}`).classList.add('hidden');
                 document.getElementById(`tab-${name}`).classList.remove('bg-blue-600', 'text-white');
                  document.getElementById(`tab-${name}`).classList.add('text-gray-600', 'dark:text-gray-300');
@@ -596,6 +632,16 @@
                 loadStudentDataForTable(); 
             } else if (tabName === 'attendance') {
                 loadStudentDataForRecognition(); 
+            } else if (tabName === 'history') {
+                if (!document.getElementById('history-date-from').value) {
+                    // ค่าเริ่มต้น: ย้อนหลัง 7 วันถึงวันนี้
+                    const today = new Date();
+                    const weekAgo = new Date();
+                    weekAgo.setDate(today.getDate() - 7);
+                    document.getElementById('history-date-to').valueAsDate = today;
+                    document.getElementById('history-date-from').valueAsDate = weekAgo;
+                }
+                loadAttendanceHistory();
             }
         }
         
@@ -663,8 +709,12 @@
             const startBtn = document.getElementById('btn-start-scan');
             const originalBtnHtml = startBtn.innerHTML;
             startBtn.disabled = true;
-            startBtn.innerHTML = '<span>กำลังโหลดข้อมูลใบหน้า...</span>';
             try {
+                if (modelsLoadedPromise) {
+                    startBtn.innerHTML = '<span>กำลังเตรียมระบบ AI...</span>';
+                    await modelsLoadedPromise; // เผื่อโมเดลที่โหลดพื้นหลังไว้ตั้งแต่เข้าแอปยังไม่เสร็จ
+                }
+                startBtn.innerHTML = '<span>กำลังโหลดข้อมูลใบหน้า...</span>';
                 await loadStudentDataForRecognition();
             } catch (err) {
                 // กันปุ่มค้างถ้าโหลดข้อมูลใบหน้าพัง (เช่น เน็ตหลุดกลางทาง) แทนที่จะค้างคำว่า "กำลังโหลด..." ตลอดไป
@@ -1190,6 +1240,63 @@
                     .map(rec => ({ ...rec, timestamp: new Date(rec.timestamp) }));
                  renderDashboard();
              }
+        }
+
+        // แท็บ "ประวัติ" — ดูประวัติเช็คชื่อย้อนหลังแบบเลือกช่วงวันที่ได้ (ต่างจาก Dashboard ที่ดูได้แค่ทีละวัน)
+        async function loadAttendanceHistory() {
+            const tableBody = document.getElementById('history-table-body');
+            const summaryEl = document.getElementById('history-summary');
+            tableBody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-gray-400">กำลังโหลด...</td></tr>`;
+
+            const fromVal = document.getElementById('history-date-from').value;
+            const toVal = document.getElementById('history-date-to').value;
+            const searchVal = document.getElementById('history-search-input').value.trim().toLowerCase();
+
+            const response = await apiCall({ action: 'getAttendance' });
+            if (!response.success) {
+                tableBody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-red-500">โหลดข้อมูลไม่สำเร็จ</td></tr>`;
+                return;
+            }
+
+            const fromDate = fromVal ? new Date(fromVal) : null;
+            if (fromDate) fromDate.setHours(0, 0, 0, 0);
+            const toDate = toVal ? new Date(toVal) : null;
+            if (toDate) toDate.setHours(23, 59, 59, 999);
+
+            let records = response.data
+                .map(rec => ({ ...rec, timestampObj: new Date(rec.timestamp) }))
+                .filter(rec => !selectedClassroom || classMatchesRoom(rec.class, selectedClassroom))
+                .filter(rec => !fromDate || rec.timestampObj >= fromDate)
+                .filter(rec => !toDate || rec.timestampObj <= toDate)
+                .filter(rec => !searchVal || (rec.name || '').toLowerCase().includes(searchVal) || (rec.id || '').toString().toLowerCase().includes(searchVal))
+                .sort((a, b) => b.timestampObj - a.timestampObj); // ใหม่สุดขึ้นก่อน
+
+            summaryEl.innerText = `พบ ${records.length} รายการ`;
+
+            if (records.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-gray-400">ไม่พบข้อมูลในช่วงวันที่ที่เลือก</td></tr>`;
+                return;
+            }
+
+            const statusBadge = (status) => {
+                if (status === 'มาเรียน') return '<span class="text-xs font-medium bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">มาเรียน</span>';
+                if (status === 'สาย' || status === 'มาสาย') return '<span class="text-xs font-medium bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">มาสาย</span>';
+                if (status === 'ลาป่วย') return '<span class="text-xs font-medium bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">ลาป่วย</span>';
+                if (status === 'ลากิจ' || status === 'ลา') return '<span class="text-xs font-medium bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">ลากิจ</span>';
+                if (status === 'ขาด') return '<span class="text-xs font-medium bg-red-100 text-red-700 px-2 py-0.5 rounded-full">ขาด</span>';
+                return `<span class="text-xs text-gray-500">${status || '-'}</span>`;
+            };
+
+            tableBody.innerHTML = records.map(rec => `
+                <tr>
+                    <td class="p-3">${rec.timestampObj.toLocaleDateString('th-TH')}</td>
+                    <td class="p-3">${rec.timestampObj.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}</td>
+                    <td class="p-3">${rec.id || '-'}</td>
+                    <td class="p-3">${rec.name || '-'}</td>
+                    <td class="p-3">${rec.period || '-'}</td>
+                    <td class="p-3">${statusBadge(rec.status)}</td>
+                    <td class="p-3">${rec.subject || '-'}</td>
+                </tr>`).join('');
         }
         function renderDashboard() {
             const selectedDate = new Date(document.getElementById('dashboard-date').value);
