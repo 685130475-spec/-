@@ -36,6 +36,8 @@
         .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; }
         .animate-fade-in { animation: fadeIn 0.5s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        /* กลับด้านภาพกล้อง (แนวกระจก) เพราะใช้กล้องหน้าให้นักศึกษาส่องดูตัวเองจัดตำแหน่งใบหน้าคล้าย Face ID ให้ความรู้สึกเป็นธรรมชาติเหมือนกระจก */
+        .mirrored-feed { transform: scaleX(-1); }
     </style>
 </head>
 <body class="bg-sky-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300">
@@ -167,8 +169,8 @@
                             <div class="loader w-12 h-12 rounded-full border-4 border-gray-200 dark:border-gray-700"></div>
                             <p id="video-loading-text" class="mt-4 text-gray-600 dark:text-gray-400">กำลังเปิดกล้อง...</p>
                         </div>
-                        <div class="w-full max-w-4xl mx-auto bg-black rounded-lg overflow-hidden relative aspect-video hidden" id="video-wrapper">
-                            <video id="video" class="w-full h-full" autoplay muted playsinline></video>
+                        <div class="w-full max-w-lg sm:max-w-2xl mx-auto bg-black rounded-lg overflow-hidden relative aspect-[3/4] sm:aspect-video hidden" id="video-wrapper">
+                            <video id="video" class="w-full h-full object-cover mirrored-feed" autoplay muted playsinline></video>
                             <canvas id="overlay" class="absolute top-0 left-0"></canvas>
                             <!-- กรอบแนะนำตำแหน่งวางใบหน้า (แสดงตลอดเวลาที่กล้องเปิด ไม่ขึ้นกับผลตรวจจับ) -->
                             <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -249,6 +251,7 @@
         // --- GLOBAL STATE & CONFIG ---
         const gasWebAppUrl = 'https://script.google.com/macros/s/AKfycbwO-J9lL0WwbWGGbD9v1oGVammWExJpjYTvZBTs4MUA0ZlWnyjceRYSqvi6G2Ncmtmhvg/exec';
         let faceMatcher = null, pieChart, barChart;
+        let descriptorCache = {}; // แคชผลคำนวณใบหน้าต่อคน กันคำนวณซ้ำทุกครั้งที่กด "เริ่มเช็คชื่อ" — สำคัญมากเวลามีนักศึกษาหลักสิบ-ร้อยคน
         let modelsLoadedPromise = null; // ติดตามสถานะการโหลดโมเดล AI ที่ตอนนี้ทำงานพื้นหลังตั้งแต่เข้าแอป
         let students = [], attendance = [], checkedInToday = new Map();
 
@@ -733,7 +736,8 @@
                 alert('ยังไม่มีข้อมูลใบหน้านักศึกษาที่ใช้เทียบได้ในห้องนี้ กรุณาตรวจสอบว่านักศึกษาในห้อง ' + selectedClassroom + ' มีการถ่าย/อัปโหลดรูปใบหน้าไว้แล้ว (ไปที่แท็บ "จัดการข้อมูล")');
                 return;
             }
-            checkedInToday.clear();
+            // หมายเหตุ: checkedInToday ถูกดึงจาก Google Sheet มาเติมให้แล้วในขั้นตอน loadStudentDataForRecognition() ด้านบน
+            // (กันสแกนซ้ำคนที่เช็คชื่อไปแล้ว แม้จะเป็นคนละรอบการสแกนก็ตาม) จึงไม่ต้อง clear() ทิ้งตรงนี้อีก
             lastUnknownFaceAlert = 0;
             document.getElementById('start-scan-section').classList.add('hidden');
             document.getElementById('scanning-section').classList.remove('hidden');
@@ -807,9 +811,8 @@
             
             const videoLoadingText = document.getElementById('video-loading-text');
             try {
-                // ใช้กล้องหลัง (rear/environment) เพราะเป็นกล้องสำหรับถ่ายนักศึกษาที่ยืนอยู่หน้าเครื่อง ไม่ใช่การเซลฟี่ตัวเอง
-                // ไม่ต้อง mirror ภาพด้วย เพราะกล้องหลังถ่ายคนอื่นตามธรรมชาติอยู่แล้ว ไม่ใช่ภาพสะท้อนกระจกแบบกล้องหน้า
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } } });
+                // ใช้กล้องหน้า (front/user) ให้นักศึกษาส่องดูตัวเองจัดตำแหน่งใบหน้าในกรอบได้ คล้ายการปลดล็อกมือถือด้วย Face ID
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'user' } } });
                 video.srcObject = stream;
             } catch (err) {
                 console.error('CRITICAL ERROR starting video stream:', err.name, err.message);
@@ -848,16 +851,17 @@
                             const isUnknown = result.label === 'unknown';
                             const color = isUnknown ? '#f59e0b' : '#22c55e';
                             const label = result.toString();
-                            // วาดกรอบตำแหน่งจริงตามที่ face-api ตรวจจับได้เลย ไม่ต้องกลับด้านแล้ว เพราะวิดีโอไม่ mirror อีกต่อไป (ใช้กล้องหลังถ่ายคนอื่น)
+                            // วิดีโอ mirror ไว้ (กล้องหน้า) แต่ canvas ไม่ mirror เพื่อให้ตัวอักษรอ่านออกปกติ จึงต้องคำนวณตำแหน่งกรอบให้กลับด้าน X เองแทน
+                            const mirroredX = overlay.width - box.x - box.width;
                             ctx.strokeStyle = color;
                             ctx.lineWidth = 2;
-                            ctx.strokeRect(box.x, box.y, box.width, box.height);
+                            ctx.strokeRect(mirroredX, box.y, box.width, box.height);
                             ctx.font = '16px Sarabun, sans-serif';
                             const textWidth = ctx.measureText(label).width;
                             ctx.fillStyle = color;
-                            ctx.fillRect(box.x, box.y - 20, textWidth + 10, 20);
+                            ctx.fillRect(mirroredX, box.y - 20, textWidth + 10, 20);
                             ctx.fillStyle = '#ffffff';
-                            ctx.fillText(label, box.x + 5, box.y - 5);
+                            ctx.fillText(label, mirroredX + 5, box.y - 5);
                             if (isUnknown) {
                                 hasUnknownFace = true;
                             } else {
@@ -891,15 +895,34 @@
         }
         
         async function loadStudentDataForRecognition() {
-            const response = await apiCall({ action: 'getStudents' });
+            checkedInToday.clear();
+            const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+
+            // ยิงคำขอทั้งสองอย่างพร้อมกันแทนที่จะรอทีละอัน (getStudents กับ getAttendance ไม่เกี่ยวข้องกัน ไม่จำเป็นต้องรอต่อคิว)
+            // เดิมรอ getStudents เสร็จก่อนถึงจะเริ่มยิง getAttendance ทำให้เสียเวลารอ Apps Script 2 รอบซ้อนกันโดยไม่จำเป็น
+            const [response, attResponse] = await Promise.all([
+                apiCall({ action: 'getStudents' }),
+                apiCall({ action: 'getAttendance' })
+            ]);
+
             if (response.success && response.data.length > 0) {
                 students = selectedClassroom ? response.data.filter(s => classMatchesRoom(s.class, selectedClassroom)) : response.data;
                 const labeledFaceDescriptors = await Promise.all(students.map(async (student) => {
                     if (student.imagedatabase64 && student.imagedatabase64.startsWith('data:image')) {
+                        // ลายเซ็นเบาๆ (ความยาว + ท้ายสตริง) เช็คว่ารูปเปลี่ยนไปจากที่เคยคำนวณไว้หรือยัง ไม่ต้องเทียบสตริงเต็มๆ (ยาวหลายหมื่นตัวอักษร)
+                        const sig = student.imagedatabase64.length + '_' + student.imagedatabase64.slice(-40);
+                        const cached = descriptorCache[student.studentid];
+                        if (cached && cached.sig === sig) {
+                            return cached.descriptor; // รูปเดิม ไม่เปลี่ยน ใช้ค่าที่เคยคำนวณไว้แล้ว ไม่ต้องคำนวณซ้ำ
+                        }
                         try {
                             const img = await faceapi.fetchImage(student.imagedatabase64);
                              const detections = await faceapi.detectSingleFace(img, new faceapi.SsdMobilenetv1Options()).withFaceLandmarks().withFaceDescriptor();
-                            if (detections) { return new faceapi.LabeledFaceDescriptors(student.name, [detections.descriptor]); }
+                            if (detections) {
+                                const labeled = new faceapi.LabeledFaceDescriptors(student.name, [detections.descriptor]);
+                                descriptorCache[student.studentid] = { sig, descriptor: labeled };
+                                return labeled;
+                            }
                         } catch (e) { console.error(`Could not process image for ${student.name}`, e); }
                      }
                     return null;
@@ -908,6 +931,18 @@
                 if (validDescriptors.length > 0) { faceMatcher = new faceapi.FaceMatcher(validDescriptors, 0.6); console.log('Face matcher ready.'); }
                 else { faceMatcher = null; }
             } else { faceMatcher = null; console.log('No student data found for recognition.'); }
+
+            // ดึงรายชื่อที่เช็คชื่อไปแล้ววันนี้จาก Google Sheet มากันสแกนซ้ำ "ข้ามรอบ" การสแกน
+            // (เดิมกันซ้ำได้แค่ภายในรอบเดียวกัน พอกด "เริ่มเช็คชื่อ" ใหม่อีกรอบ คนเดิมที่เคยสแกนแล้วจะโดนบันทึกซ้ำเป็นอีกแถว ทำให้สถิติเพี้ยน)
+            if (attResponse.success) {
+                attResponse.data.forEach(rec => {
+                    const recDate = new Date(rec.timestamp);
+                    recDate.setHours(0, 0, 0, 0);
+                    if (recDate.getTime() === todayStart.getTime() && classMatchesRoom(rec.class, selectedClassroom)) {
+                        checkedInToday.set(rec.id, rec);
+                    }
+                });
+            }
         }
         
         async function handleRecognition(student) {
@@ -1354,7 +1389,7 @@
             return { success: false, error: 'GAS URL not configured' };
             }
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 20000); // กันค้างตลอดไปถ้าเน็ตหลุด/ช้ามาก ตัดจบหลัง 20 วินาที
+            const timeoutId = setTimeout(() => controller.abort(), 30000); // กันค้างตลอดไปถ้าเน็ตหลุด/ช้ามาก ตัดจบหลัง 30 วินาที (ขยายจาก 20 วิ กัน Apps Script ตื่นช้า/cold start)
             try {
                 const response = await fetch(gasWebAppUrl, { method: 'POST', mode: 'cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload), signal: controller.signal });
                 clearTimeout(timeoutId);
@@ -1367,7 +1402,7 @@
                 console.error('API Call Error:', error);
                 const isTimeout = error.name === 'AbortError';
                 alert(isTimeout
-                    ? 'การเชื่อมต่อกับ Server ใช้เวลานานเกินไป (เกิน 20 วินาที) สัญญาณเน็ตอาจไม่เสถียร กรุณาลองใหม่อีกครั้ง'
+                    ? 'การเชื่อมต่อกับ Server ใช้เวลานานเกินไป สัญญาณเน็ตอาจไม่เสถียร กรุณาลองใหม่อีกครั้ง'
                     : `เกิดข้อผิดพลาดในการเชื่อมต่อกับ Server:\n${error.message}\n\nถ้ากำลังบันทึกรูปภาพ: อาจเป็นเพราะไฟล์รูปใหญ่เกินไปหรือสัญญาณเน็ตไม่เสถียร ลองถ่ายภาพใหม่ในที่ที่สัญญาณดีขึ้น หรือลองใหม่อีกครั้ง`);
                 return { success: false, error: isTimeout ? 'Request timed out' : error.message };
             }
