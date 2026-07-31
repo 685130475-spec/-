@@ -6,6 +6,10 @@
     <title>ระบบเช็คชื่อด้วยเทคโนโลยีใบหน้า</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // บอก Tailwind ให้สลับโหมดมืด/สว่างตาม class ที่กดสลับเอง (ไม่งั้นค่าเริ่มต้นจะยึดตามการตั้งค่าของเครื่อง/เบราว์เซอร์เท่านั้น กดปุ่มแล้วจะไม่มีอะไรเปลี่ยนเลย)
+        tailwind.config = { darkMode: 'class' };
+    </script>
     
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -447,8 +451,7 @@
             } else {
                 // ห้อง/วิชาถูกเลือกไว้แล้ว (เช่น ล็อกอินซ้ำวันเดียวกัน) — แท็บ Dashboard เป็นแท็บเริ่มต้นที่มองเห็นอยู่แล้ว
                 // แต่ปกติข้อมูลจะโหลดก็ต่อเมื่อกดแท็บเองเท่านั้น ถ้าไม่โหลดตรงนี้ด้วย รายชื่อ/สถิติจะดูเหมือนหายไปทั้งที่จริงมีข้อมูลอยู่
-                loadStudentRosterForDashboard();
-                loadAttendanceDataForDashboard();
+                refreshDashboardData();
             }
         }
 
@@ -543,7 +546,7 @@
             document.getElementById('room-picker-panel').classList.add('hidden');
             // รีเฟรชข้อมูลของแท็บที่กำลังเปิดอยู่ ให้ตรงกับห้องที่เพิ่งเลือก
             if (!document.getElementById('content-dashboard').classList.contains('hidden')) {
-                loadStudentRosterForDashboard(); loadAttendanceDataForDashboard();
+                refreshDashboardData();
             } else if (!document.getElementById('content-attendance').classList.contains('hidden')) {
                 loadStudentDataForRecognition();
             }
@@ -624,8 +627,7 @@
             activeTab.classList.remove('text-gray-600', 'dark:text-gray-300');
             
             if (tabName === 'dashboard') {
-                loadStudentRosterForDashboard();
-                loadAttendanceDataForDashboard();
+                refreshDashboardData();
             } else if (tabName === 'manage') { 
                 loadStudentDataForTable(); 
             } else if (tabName === 'attendance') {
@@ -651,7 +653,6 @@
             rosterLoading.style.display = 'block';
             if (!selectedClassroom) {
                 rosterLoadFailed = false;
-                renderRosterGrid({});
                 rosterLoading.style.display = 'none';
                 return;
             }
@@ -659,12 +660,20 @@
             if (response.success) {
                 rosterLoadFailed = false;
                 students = response.data.filter(s => classMatchesRoom(s.class, selectedClassroom));
-                renderRosterGrid({}); // แสดงรายชื่อก่อน (ยังไม่ทราบสถานะวันนี้) รอ renderDashboard() มาอัปเดตสถานะทับอีกที
             } else {
                 rosterLoadFailed = true;
                 document.getElementById('student-roster-grid').innerHTML = `<p class="col-span-full text-center text-red-500">โหลดข้อมูลนักศึกษาไม่สำเร็จ (${response.error || 'สัญญาณเน็ตไม่เสถียร'}) กรุณากดแท็บ Dashboard ใหม่อีกครั้ง</p>`;
             }
             rosterLoading.style.display = 'none';
+        }
+
+        // เรียกใช้แทนการเรียก loadStudentRosterForDashboard() + loadAttendanceDataForDashboard() แยกกันแบบเดิม
+        // เดิมสองฟังก์ชันนี้ยิงพร้อมกันแบบไม่รอกัน (parallel) แล้วต่างฝ่ายต่างวาดรายชื่อทับกันเอง ถ้าฝั่ง attendance โหลดเสร็จก่อน
+        // ฝั่ง students (ซึ่งยังไม่มีข้อมูล) จะวาดผลลัพธ์ผิดทับไปแทน ทำให้รายชื่อ "โผล่มาแป๊บเดียวแล้วหายไป" โดยเฉพาะบนมือถือที่เน็ตช้ากว่า
+        // ตอนนี้รอให้ข้อมูลนักศึกษาพร้อมก่อนเสมอ แล้วค่อยโหลด attendance ซึ่งจะเป็นคนวาดผลสุดท้ายแค่ครั้งเดียว รับประกันว่าข้อมูลตรงกันทุกครั้ง
+        async function refreshDashboardData() {
+            await loadStudentRosterForDashboard();
+            await loadAttendanceDataForDashboard();
         }
 
         // วาดรายชื่อนักศึกษาในห้อง พร้อม "สถานะของวันนี้" ต่อคน (มาเรียน/มาสาย/ลาป่วย/ลากิจ/ขาด/ยังไม่เช็คชื่อ)
@@ -802,7 +811,7 @@
             document.getElementById('start-scan-section').classList.remove('hidden');
             // ถ้าแท็บ Dashboard เปิดอยู่พอดี (เผื่อสลับหน้าไปมา) ให้รีเฟรชตัวเลขทันที ไม่ต้องรอผู้ใช้กด refresh เอง
             if (!document.getElementById('content-dashboard').classList.contains('hidden')) {
-                loadStudentRosterForDashboard(); loadAttendanceDataForDashboard();
+                refreshDashboardData();
             }
         }
 
@@ -988,14 +997,19 @@
         function switchImageInput(type) {
             const cameraTab = document.getElementById('tab-btn-camera'), uploadTab = document.getElementById('tab-btn-upload');
             const cameraInput = document.getElementById('input-camera'), uploadInput = document.getElementById('input-upload');
+            // เอาคลาสสีของทั้ง 2 แท็บออกให้หมดก่อนเสมอ กันคลาส active/inactive เก่าค้างชนกับคลาสใหม่
+            // (เจอบั๊กจริง: แท็บ "ถ่ายภาพ" ยังโชว์ขีดเส้นใต้สีฟ้าค้างอยู่ ทั้งที่เนื้อหาที่แสดงจริงคือแท็บ "อัปโหลด" ทำให้สับสนว่าทำไมกดรูปแล้วไม่มีอะไรเกิดขึ้น)
+            [cameraTab, uploadTab].forEach(tab => {
+                tab.classList.remove('border-blue-600', 'text-blue-600', 'border-transparent', 'text-gray-500');
+            });
             if (type === 'camera') {
                 cameraTab.classList.add('border-blue-600', 'text-blue-600');
-                uploadTab.classList.remove('border-blue-600', 'text-blue-600');
+                uploadTab.classList.add('border-transparent', 'text-gray-500');
                 cameraInput.classList.remove('hidden'); uploadInput.classList.add('hidden');
                 startCaptureVideo();
             } else {
                 uploadTab.classList.add('border-blue-600', 'text-blue-600');
-                cameraTab.classList.remove('border-blue-600', 'text-blue-600');
+                cameraTab.classList.add('border-transparent', 'text-gray-500');
                 uploadInput.classList.remove('hidden'); cameraInput.classList.add('hidden');
                 stopCaptureVideo();
             }
@@ -1027,7 +1041,6 @@
             document.getElementById('image-preview').classList.add('hidden');
             document.getElementById('image-preview').src = '';
             document.getElementById('student-image-data').value = '';
-            switchImageInput('camera');
             if (student) {
                 document.getElementById('modal-title').innerText = 'แก้ไขข้อมูลนักศึกษา';
                 document.getElementById('student-row-index').value = student.rowIndex;
@@ -1036,12 +1049,17 @@
                 document.getElementById('student-class').value = student.class;
                 document.getElementById('student-image-data').value = student.imagedatabase64 || '';
                 if (student.imagedatabase64) {
+                    // ไม่เปิดกล้องเลยถ้ามีรูปอยู่แล้ว (เดิมเปิดกล้องก่อนเสมอแล้วค่อยสลับแท็บ ทำให้กล้องซึ่งเปิดช้ากว่าไปแทรกตอนหลัง
+                    // จนแท็บ/ภาพที่โชว์เพี้ยนไปจากที่ควรเป็น) กันปัญหาแท็บ "ถ่ายภาพ"/"อัปโหลด" ค้างผิดสถานะ
                     switchImageInput('upload');
                     document.getElementById('image-preview').src = student.imagedatabase64;
                     document.getElementById('image-preview').classList.remove('hidden');
+                } else {
+                    switchImageInput('camera');
                 }
             } else {
                 document.getElementById('modal-title').innerText = 'เพิ่มข้อมูลนักศึกษา';
+                switchImageInput('camera');
             }
             document.getElementById('student-modal').classList.remove('hidden');
         }
