@@ -917,30 +917,34 @@
 
             if (response.success && response.data.length > 0) {
                 students = selectedClassroom ? response.data.filter(s => classMatchesRoom(s.class, selectedClassroom)) : response.data;
-                // ประมวลผลรูปทีละคน (ไม่ยิงพร้อมกันหมดแบบเดิม) กันเบราว์เซอร์ค้าง/ขึ้น "ไม่ตอบสนอง"
-                // เดิมยิง Promise.all ให้ตรวจจับใบหน้าทุกคนพร้อมกันทีเดียว ถ้ามีรูปเยอะจะโหลด CPU หนักจนหน้าเว็บค้างชั่วขณะ
+                // ประมวลผลรูปทีละกลุ่มเล็กๆ (พร้อมกันทีละ 3 คน) แทนที่จะทำทีละคน (ช้าไป) หรือพร้อมกันหมด (เครื่องค้าง)
+                // จุดคุ้มค่าระหว่างความเร็วกับไม่ให้ CPU โหลดหนักเกินไปจนเบราว์เซอร์ค้าง
+                const BATCH_SIZE = 3;
                 const labeledFaceDescriptors = [];
-                for (const student of students) {
-                    if (student.imagedatabase64 && student.imagedatabase64.startsWith('data:image')) {
-                        // ลายเซ็นเบาๆ (ความยาว + ท้ายสตริง) เช็คว่ารูปเปลี่ยนไปจากที่เคยคำนวณไว้หรือยัง ไม่ต้องเทียบสตริงเต็มๆ (ยาวหลายหมื่นตัวอักษร)
-                        const sig = student.imagedatabase64.length + '_' + student.imagedatabase64.slice(-40);
-                        const cached = descriptorCache[student.studentid];
-                        if (cached && cached.sig === sig) {
-                            labeledFaceDescriptors.push(cached.descriptor); // รูปเดิม ไม่เปลี่ยน ใช้ค่าที่เคยคำนวณไว้แล้ว ไม่ต้องคำนวณซ้ำ
-                            continue;
+                const processStudent = async (student) => {
+                    if (!(student.imagedatabase64 && student.imagedatabase64.startsWith('data:image'))) return null;
+                    // ลายเซ็นเบาๆ (ความยาว + ท้ายสตริง) เช็คว่ารูปเปลี่ยนไปจากที่เคยคำนวณไว้หรือยัง ไม่ต้องเทียบสตริงเต็มๆ (ยาวหลายหมื่นตัวอักษร)
+                    const sig = student.imagedatabase64.length + '_' + student.imagedatabase64.slice(-40);
+                    const cached = descriptorCache[student.studentid];
+                    if (cached && cached.sig === sig) {
+                        return cached.descriptor; // รูปเดิม ไม่เปลี่ยน ใช้ค่าที่เคยคำนวณไว้แล้ว ไม่ต้องคำนวณซ้ำ (เร็วมากหลังรอบแรก)
+                    }
+                    try {
+                        const img = await faceapi.fetchImage(student.imagedatabase64);
+                        const detections = await faceapi.detectSingleFace(img, new faceapi.SsdMobilenetv1Options()).withFaceLandmarks().withFaceDescriptor();
+                        if (detections) {
+                            const labeled = new faceapi.LabeledFaceDescriptors(student.name, [detections.descriptor]);
+                            descriptorCache[student.studentid] = { sig, descriptor: labeled };
+                            return labeled;
                         }
-                        try {
-                            const img = await faceapi.fetchImage(student.imagedatabase64);
-                             const detections = await faceapi.detectSingleFace(img, new faceapi.SsdMobilenetv1Options()).withFaceLandmarks().withFaceDescriptor();
-                            if (detections) {
-                                const labeled = new faceapi.LabeledFaceDescriptors(student.name, [detections.descriptor]);
-                                descriptorCache[student.studentid] = { sig, descriptor: labeled };
-                                labeledFaceDescriptors.push(labeled);
-                            }
-                        } catch (e) { console.error(`Could not process image for ${student.name}`, e); }
-                        // เว้นจังหวะสั้นๆ ให้เบราว์เซอร์คืนตัวระหว่างประมวลผลแต่ละรูป กันหน้าจอค้างระหว่างโหลดรูปเยอะๆ
-                        await new Promise(resolve => setTimeout(resolve, 0));
-                     }
+                    } catch (e) { console.error(`Could not process image for ${student.name}`, e); }
+                    return null;
+                };
+                for (let i = 0; i < students.length; i += BATCH_SIZE) {
+                    const batch = students.slice(i, i + BATCH_SIZE);
+                    const results = await Promise.all(batch.map(processStudent));
+                    labeledFaceDescriptors.push(...results);
+                    await new Promise(resolve => setTimeout(resolve, 0)); // เว้นจังหวะสั้นๆ ระหว่างแต่ละกลุ่มให้เบราว์เซอร์คืนตัว
                 }
                 const validDescriptors = labeledFaceDescriptors.filter(Boolean);
                 if (validDescriptors.length > 0) { faceMatcher = new faceapi.FaceMatcher(validDescriptors, 0.6); console.log('Face matcher ready.'); }
@@ -1446,10 +1450,11 @@
             }
             pieChart = new Chart(ctx, { type: 'pie', data: { labels: ['มาตรงเวลา', 'มาสาย', 'ขาด/ลา'], datasets: [{ data: [onTime, late, absent], backgroundColor: ['#34D399', '#FBBF24', '#F87171'] }] } });
         }
-        async function apiCall(payload, isRetry = false) {
+        async function apiCall(payload, retryCount = 0) {
             if (!gasWebAppUrl) { alert('กรุณาตั้งค่า Google Apps Script URL ก่อน');
             return { success: false, error: 'GAS URL not configured' };
             }
+            const MAX_RETRIES = 2; // ลองสูงสุด 3 ครั้งรวมรอบแรก (0, 1, 2)
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 30000); // กันค้างตลอดไปถ้าเน็ตหลุด/ช้ามาก ตัดจบหลัง 30 วินาที
             try {
@@ -1461,17 +1466,18 @@
                 return await response.json();
             } catch (error) {
                 clearTimeout(timeoutId);
-                // ลองใหม่อัตโนมัติแบบเงียบๆ 1 ครั้งก่อนจะแจ้งเตือนผู้ใช้ เพราะ Apps Script บางครั้ง "ตื่นช้า" (cold start)
-                // รอบสองมักจะผ่านโดยที่ผู้ใช้ไม่ต้องเห็น error เลย ลดปัญหาค้าง/error โผล่บ่อยเกินไป
-                if (!isRetry) {
-                    console.warn('API call failed, retrying once:', error.message);
-                    return apiCall(payload, true);
+                // ลองใหม่อัตโนมัติแบบเงียบๆ สูงสุด 2 ครั้งก่อนจะแจ้งเตือนผู้ใช้ เพราะ Apps Script บางครั้ง "ตื่นช้า" (cold start)
+                // หรือเน็ตสะดุดชั่วคราว รอบถัดไปมักจะผ่านโดยที่ผู้ใช้ไม่ต้องเห็น error เลย
+                if (retryCount < MAX_RETRIES) {
+                    console.warn(`API call failed, retrying (${retryCount + 1}/${MAX_RETRIES})...`, error.message);
+                    await new Promise(resolve => setTimeout(resolve, 1000)); // เว้น 1 วิ ก่อนลองใหม่ ให้เน็ต/เซิร์ฟเวอร์มีเวลาฟื้นตัว
+                    return apiCall(payload, retryCount + 1);
                 }
-                console.error('API Call Error (after retry):', error);
+                console.error('API Call Error (after retries):', error);
                 const isTimeout = error.name === 'AbortError';
                 alert(isTimeout
-                    ? 'การเชื่อมต่อกับ Server ใช้เวลานานเกินไป (ลองใหม่ให้แล้ว 2 รอบ) สัญญาณเน็ตอาจไม่เสถียร กรุณาลองใหม่อีกครั้ง'
-                    : `เกิดข้อผิดพลาดในการเชื่อมต่อกับ Server:\n${error.message}\n\nถ้ากำลังบันทึกรูปภาพ: อาจเป็นเพราะไฟล์รูปใหญ่เกินไปหรือสัญญาณเน็ตไม่เสถียร ลองถ่ายภาพใหม่ในที่ที่สัญญาณดีขึ้น หรือลองใหม่อีกครั้ง`);
+                    ? `การเชื่อมต่อกับ Server ใช้เวลานานเกินไป (ลองใหม่ให้แล้ว ${MAX_RETRIES + 1} รอบ) สัญญาณเน็ตอาจไม่เสถียร กรุณาลองใหม่อีกครั้ง หรือเช็คสัญญาณ WiFi/มือถือ`
+                    : `เกิดข้อผิดพลาดในการเชื่อมต่อกับ Server (ลองแล้ว ${MAX_RETRIES + 1} รอบ):\n${error.message}\n\nถ้ากำลังบันทึกรูปภาพ: อาจเป็นเพราะไฟล์รูปใหญ่เกินไปหรือสัญญาณเน็ตไม่เสถียร ลองถ่ายภาพใหม่ในที่ที่สัญญาณดีขึ้น หรือลองใหม่อีกครั้ง`);
                 return { success: false, error: isTimeout ? 'Request timed out' : error.message };
             }
         }
