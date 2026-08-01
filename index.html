@@ -160,14 +160,14 @@
             <div id="content-attendance" class="hidden space-y-6">
                 <div id="start-scan-section" class="text-center bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md"><h2 class="text-2xl font-bold mb-4">เริ่มการเช็คชื่อ</h2><p class="text-gray-600 dark:text-gray-400 mb-6">กดปุ่มด้านล่างเพื่อเริ่มเปิดกล้องและสแกนใบหน้า</p><button id="btn-start-scan" onclick="startScanning()" class="bg-blue-600 text-white px-8 py-3 rounded-full hover:bg-blue-700 text-lg font-semibold flex items-center justify-center mx-auto gap-2"><i data-lucide="camera"></i><span>เริ่มเช็คชื่อ</span></button></div>
                 
-                <div id="scanning-section" class="hidden space-y-6">
-                    <div class="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md flex flex-col items-center">
-                        <h2 class="text-lg font-semibold mb-4 text-gray-700 dark:text-gray-300">กำลังสแกน...</h2>
+                <div id="scanning-section" class="hidden space-y-4">
+                    <div class="bg-white dark:bg-gray-800 p-2 sm:p-6 rounded-lg shadow-md flex flex-col items-center">
+                        <h2 class="text-base sm:text-lg font-semibold mb-2 text-gray-700 dark:text-gray-300">กำลังสแกน...</h2>
                         <div id="video-loader" class="flex flex-col items-center justify-center h-64 w-full">
                             <div class="loader w-12 h-12 rounded-full border-4 border-gray-200 dark:border-gray-700"></div>
                             <p id="video-loading-text" class="mt-4 text-gray-600 dark:text-gray-400">กำลังเปิดกล้อง...</p>
                         </div>
-                        <div class="w-full max-w-lg sm:max-w-2xl mx-auto bg-black rounded-lg overflow-hidden relative aspect-[3/4] sm:aspect-video hidden" id="video-wrapper">
+                        <div class="w-full max-w-lg sm:max-w-2xl mx-auto bg-black rounded-lg overflow-hidden relative h-[70vh] sm:h-auto sm:aspect-video hidden" id="video-wrapper">
                             <video id="video" class="w-full h-full object-cover mirrored-feed" autoplay muted playsinline></video>
                             <canvas id="overlay" class="absolute top-0 left-0"></canvas>
                             <!-- กรอบแนะนำตำแหน่งวางใบหน้า (แสดงตลอดเวลาที่กล้องเปิด ไม่ขึ้นกับผลตรวจจับ) -->
@@ -649,13 +649,13 @@
         let rosterLoadFailed = false; // แยกสถานะ "โหลดพัง" ออกจาก "ไม่มีข้อมูลจริง" กันข้อความสับสน (เจอบั๊กนี้บนมือถือที่ getStudents ล้มเหลวแต่ getAttendance สำเร็จ)
 
         async function loadStudentRosterForDashboard() {
-            const rosterLoading = document.getElementById('roster-loading');
-            rosterLoading.style.display = 'block';
             if (!selectedClassroom) {
+                // ไม่มีอะไรต้องโหลด ไม่ต้องโชว์ spinner "กำลังโหลด..." เลย — เดิมโชว์ทับกับข้อความ "กรุณาเลือกห้องเรียน" ทำให้ดูขัดแย้งกันเอง
                 rosterLoadFailed = false;
-                rosterLoading.style.display = 'none';
                 return;
             }
+            const rosterLoading = document.getElementById('roster-loading');
+            rosterLoading.style.display = 'block';
             const response = await apiCall({ action: 'getStudents' });
             if (response.success) {
                 rosterLoadFailed = false;
@@ -917,13 +917,17 @@
 
             if (response.success && response.data.length > 0) {
                 students = selectedClassroom ? response.data.filter(s => classMatchesRoom(s.class, selectedClassroom)) : response.data;
-                const labeledFaceDescriptors = await Promise.all(students.map(async (student) => {
+                // ประมวลผลรูปทีละคน (ไม่ยิงพร้อมกันหมดแบบเดิม) กันเบราว์เซอร์ค้าง/ขึ้น "ไม่ตอบสนอง"
+                // เดิมยิง Promise.all ให้ตรวจจับใบหน้าทุกคนพร้อมกันทีเดียว ถ้ามีรูปเยอะจะโหลด CPU หนักจนหน้าเว็บค้างชั่วขณะ
+                const labeledFaceDescriptors = [];
+                for (const student of students) {
                     if (student.imagedatabase64 && student.imagedatabase64.startsWith('data:image')) {
                         // ลายเซ็นเบาๆ (ความยาว + ท้ายสตริง) เช็คว่ารูปเปลี่ยนไปจากที่เคยคำนวณไว้หรือยัง ไม่ต้องเทียบสตริงเต็มๆ (ยาวหลายหมื่นตัวอักษร)
                         const sig = student.imagedatabase64.length + '_' + student.imagedatabase64.slice(-40);
                         const cached = descriptorCache[student.studentid];
                         if (cached && cached.sig === sig) {
-                            return cached.descriptor; // รูปเดิม ไม่เปลี่ยน ใช้ค่าที่เคยคำนวณไว้แล้ว ไม่ต้องคำนวณซ้ำ
+                            labeledFaceDescriptors.push(cached.descriptor); // รูปเดิม ไม่เปลี่ยน ใช้ค่าที่เคยคำนวณไว้แล้ว ไม่ต้องคำนวณซ้ำ
+                            continue;
                         }
                         try {
                             const img = await faceapi.fetchImage(student.imagedatabase64);
@@ -931,12 +935,13 @@
                             if (detections) {
                                 const labeled = new faceapi.LabeledFaceDescriptors(student.name, [detections.descriptor]);
                                 descriptorCache[student.studentid] = { sig, descriptor: labeled };
-                                return labeled;
+                                labeledFaceDescriptors.push(labeled);
                             }
                         } catch (e) { console.error(`Could not process image for ${student.name}`, e); }
+                        // เว้นจังหวะสั้นๆ ให้เบราว์เซอร์คืนตัวระหว่างประมวลผลแต่ละรูป กันหน้าจอค้างระหว่างโหลดรูปเยอะๆ
+                        await new Promise(resolve => setTimeout(resolve, 0));
                      }
-                    return null;
-                }));
+                }
                 const validDescriptors = labeledFaceDescriptors.filter(Boolean);
                 if (validDescriptors.length > 0) { faceMatcher = new faceapi.FaceMatcher(validDescriptors, 0.6); console.log('Face matcher ready.'); }
                 else { faceMatcher = null; }
