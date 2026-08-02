@@ -947,7 +947,7 @@
                     await new Promise(resolve => setTimeout(resolve, 0)); // เว้นจังหวะสั้นๆ ระหว่างแต่ละกลุ่มให้เบราว์เซอร์คืนตัว
                 }
                 const validDescriptors = labeledFaceDescriptors.filter(Boolean);
-                if (validDescriptors.length > 0) { faceMatcher = new faceapi.FaceMatcher(validDescriptors, 0.6); console.log('Face matcher ready.'); }
+                if (validDescriptors.length > 0) { faceMatcher = new faceapi.FaceMatcher(validDescriptors, 0.45); console.log('Face matcher ready.'); }
                 else { faceMatcher = null; }
             } else { faceMatcher = null; console.log('No student data found for recognition.'); }
 
@@ -1224,10 +1224,8 @@
                 });
                 btn.innerText = `บันทึกแล้ว ✓ (${records.length} คน)`;
                 setTimeout(() => { btn.innerText = originalText; }, 3000);
-                // ถ้าแท็บ Dashboard เปิดอยู่พอดี ให้รีเฟรชตัวเลขทันที
-                if (!document.getElementById('content-dashboard').classList.contains('hidden')) {
-                    loadAttendanceDataForDashboard();
-                }
+                // รีเฟรชข้อมูล Dashboard ทันทีเสมอ (ไม่ใช่แค่ตอนแท็บ Dashboard เปิดอยู่) กันปัญหาต้องรอ/รีเฟรชเองตอนสลับไปดู
+                refreshDashboardData();
             } else {
                 alert('เกิดข้อผิดพลาด: ' + (response.error || ''));
                 btn.disabled = false;
