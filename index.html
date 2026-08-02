@@ -947,7 +947,7 @@
                     await new Promise(resolve => setTimeout(resolve, 0)); // เว้นจังหวะสั้นๆ ระหว่างแต่ละกลุ่มให้เบราว์เซอร์คืนตัว
                 }
                 const validDescriptors = labeledFaceDescriptors.filter(Boolean);
-                if (validDescriptors.length > 0) { faceMatcher = new faceapi.FaceMatcher(validDescriptors, 0.45); console.log('Face matcher ready.'); }
+                if (validDescriptors.length > 0) { faceMatcher = new faceapi.FaceMatcher(validDescriptors, 0.4); console.log('Face matcher ready.'); }
                 else { faceMatcher = null; }
             } else { faceMatcher = null; console.log('No student data found for recognition.'); }
 
@@ -1459,23 +1459,31 @@
                 const response = await fetch(gasWebAppUrl, { method: 'POST', mode: 'cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload), signal: controller.signal });
                 clearTimeout(timeoutId);
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    const err = new Error(`HTTP error! status: ${response.status}`);
+                    err.httpStatus = response.status;
+                    throw err;
                 }
                 return await response.json();
             } catch (error) {
                 clearTimeout(timeoutId);
-                // ลองใหม่อัตโนมัติแบบเงียบๆ สูงสุด 2 ครั้งก่อนจะแจ้งเตือนผู้ใช้ เพราะ Apps Script บางครั้ง "ตื่นช้า" (cold start)
-                // หรือเน็ตสะดุดชั่วคราว รอบถัดไปมักจะผ่านโดยที่ผู้ใช้ไม่ต้องเห็น error เลย
-                if (retryCount < MAX_RETRIES) {
+                // 4xx (เช่น 404 = ไม่พบ URL) เป็นปัญหาการตั้งค่าถาวร ลองใหม่กี่ครั้งก็ไม่มีทางผ่าน ไม่ต้องเสียเวลาลองซ้ำ แจ้งเตือนทันที
+                const isPermanentError = error.httpStatus && error.httpStatus >= 400 && error.httpStatus < 500;
+                if (!isPermanentError && retryCount < MAX_RETRIES) {
+                    // ลองใหม่อัตโนมัติแบบเงียบๆ สูงสุด 2 ครั้งก่อนจะแจ้งเตือนผู้ใช้ เพราะ Apps Script บางครั้ง "ตื่นช้า" (cold start)
+                    // หรือเน็ตสะดุดชั่วคราว รอบถัดไปมักจะผ่านโดยที่ผู้ใช้ไม่ต้องเห็น error เลย
                     console.warn(`API call failed, retrying (${retryCount + 1}/${MAX_RETRIES})...`, error.message);
                     await new Promise(resolve => setTimeout(resolve, 1000)); // เว้น 1 วิ ก่อนลองใหม่ ให้เน็ต/เซิร์ฟเวอร์มีเวลาฟื้นตัว
                     return apiCall(payload, retryCount + 1);
                 }
                 console.error('API Call Error (after retries):', error);
                 const isTimeout = error.name === 'AbortError';
-                alert(isTimeout
-                    ? `การเชื่อมต่อกับ Server ใช้เวลานานเกินไป (ลองใหม่ให้แล้ว ${MAX_RETRIES + 1} รอบ) สัญญาณเน็ตอาจไม่เสถียร กรุณาลองใหม่อีกครั้ง หรือเช็คสัญญาณ WiFi/มือถือ`
-                    : `เกิดข้อผิดพลาดในการเชื่อมต่อกับ Server (ลองแล้ว ${MAX_RETRIES + 1} รอบ):\n${error.message}\n\nถ้ากำลังบันทึกรูปภาพ: อาจเป็นเพราะไฟล์รูปใหญ่เกินไปหรือสัญญาณเน็ตไม่เสถียร ลองถ่ายภาพใหม่ในที่ที่สัญญาณดีขึ้น หรือลองใหม่อีกครั้ง`);
+                if (isPermanentError) {
+                    alert(`เชื่อมต่อ Google Apps Script ไม่ได้ (HTTP ${error.httpStatus} - ไม่พบ URL)\n\nนี่ไม่ใช่ปัญหาเน็ตช้า แต่ URL ของ Apps Script ที่ตั้งไว้ในเว็บอาจไม่ถูกต้องหรือ deployment ถูกลบ/เปลี่ยนไปแล้ว กรุณาเช็คว่า URL ใน gasWebAppUrl ตรงกับ Web App URL ปัจจุบันใน Apps Script > Deploy > Manage deployments`);
+                } else {
+                    alert(isTimeout
+                        ? `การเชื่อมต่อกับ Server ใช้เวลานานเกินไป (ลองใหม่ให้แล้ว ${MAX_RETRIES + 1} รอบ) สัญญาณเน็ตอาจไม่เสถียร กรุณาลองใหม่อีกครั้ง หรือเช็คสัญญาณ WiFi/มือถือ`
+                        : `เกิดข้อผิดพลาดในการเชื่อมต่อกับ Server (ลองแล้ว ${MAX_RETRIES + 1} รอบ):\n${error.message}\n\nถ้ากำลังบันทึกรูปภาพ: อาจเป็นเพราะไฟล์รูปใหญ่เกินไปหรือสัญญาณเน็ตไม่เสถียร ลองถ่ายภาพใหม่ในที่ที่สัญญาณดีขึ้น หรือลองใหม่อีกครั้ง`);
+                }
                 return { success: false, error: isTimeout ? 'Request timed out' : error.message };
             }
         }
