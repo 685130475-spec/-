@@ -1030,12 +1030,7 @@
             reader.onload = (e) => {
                 const img = new Image();
                 img.onload = () => {
-                    const canvas = document.createElement('canvas'), MAX_WIDTH = 380;
-                    const scaleSize = MAX_WIDTH / img.width;
-                    canvas.width = MAX_WIDTH; canvas.height = img.height * scaleSize;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                    const dataUrl = compressImageToFit(img);
                     document.getElementById('image-preview').src = dataUrl;
                     document.getElementById('image-preview').classList.remove('hidden');
                     document.getElementById('student-image-data').value = dataUrl;
@@ -1100,22 +1095,49 @@
                 videoEl.srcObject = null;
             }
         }
+        // บีบอัดรูปให้พอดีกับขีดจำกัด 50,000 ตัวอักษรของ Google Sheets โดยอัตโนมัติ
+        // ครอบทั้งความกว้างและความสูง (เดิมครอบแค่ความกว้างอย่างเดียว รูปแนวตั้งสุดๆ หรือกรณีพิเศษบางอย่างเลยยังหลุดขนาดใหญ่ได้)
+        // และถ้าย่อรอบแรกแล้วยังใหญ่เกิน จะลดคุณภาพ/ขนาดลงอีกเรื่อยๆ จนกว่าจะพอดี แทนที่จะปล่อยให้ error ไปเฉยๆ
+        function compressImageToFit(img, maxChars = 45000) {
+            const resize = (maxDim, quality) => {
+                const canvas = document.createElement('canvas');
+                let { width, height } = img;
+                if (width >= height) {
+                    if (width > maxDim) { height = Math.round(height * (maxDim / width)); width = maxDim; }
+                } else {
+                    if (height > maxDim) { width = Math.round(width * (maxDim / height)); height = maxDim; }
+                }
+                canvas.width = width || 1; canvas.height = height || 1;
+                canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+                return canvas.toDataURL('image/jpeg', quality);
+            };
+            let maxDim = 380, quality = 0.7;
+            let dataUrl = resize(maxDim, quality);
+            let attempts = 0;
+            while (dataUrl.length > maxChars && attempts < 6) {
+                if (quality > 0.4) { quality -= 0.1; } else { maxDim = Math.round(maxDim * 0.8); }
+                dataUrl = resize(maxDim, quality);
+                attempts++;
+            }
+            return dataUrl;
+        }
+
         function capturePhoto() {
             const videoEl = document.getElementById('capture-video');
             if (!videoEl.srcObject) {
                 alert('กรุณาเปิดกล้องก่อนถ่ายภาพ');
                 return;
             }
-            // ย่อขนาดภาพก่อนแปลงเป็น base64 เหมือนฝั่งอัปโหลดไฟล์ (เดิมจุดนี้ไม่ย่อเลย ใช้ความละเอียดกล้องเต็มๆ
-            // ทำให้ไฟล์ใหญ่เกินไปจนส่งไป Apps Script ไม่สำเร็จ โดยเฉพาะบนมือถือ/เน็ตมือถือ เจอ error "Load failed")
-            const MAX_WIDTH = 380;
-            const scaleSize = MAX_WIDTH / videoEl.videoWidth;
+            // ย่อขนาดภาพก่อนแปลงเป็น base64 พร้อมบีบอัดจนพอดีขีดจำกัดของ Google Sheets เสมอ
             const canvas = document.getElementById('capture-canvas');
-            canvas.width = MAX_WIDTH;
-            canvas.height = videoEl.videoHeight * scaleSize;
+            canvas.width = videoEl.videoWidth; canvas.height = videoEl.videoHeight;
             canvas.getContext('2d').drawImage(videoEl, 0, 0, canvas.width, canvas.height);
-            document.getElementById('student-image-data').value = canvas.toDataURL('image/jpeg', 0.7);
-            alert('ถ่ายภาพเรียบร้อยแล้ว');
+            const tempImg = new Image();
+            tempImg.onload = () => {
+                document.getElementById('student-image-data').value = compressImageToFit(tempImg);
+                alert('ถ่ายภาพเรียบร้อยแล้ว');
+            };
+            tempImg.src = canvas.toDataURL('image/png');
         }
         async function loadStudentDataForTable() {
             const response = await apiCall({ action: 'getStudents' });
