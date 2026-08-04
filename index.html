@@ -1474,7 +1474,7 @@
             if (!gasWebAppUrl) { alert('กรุณาตั้งค่า Google Apps Script URL ก่อน');
             return { success: false, error: 'GAS URL not configured' };
             }
-            const MAX_RETRIES = 2; // ลองสูงสุด 3 ครั้งรวมรอบแรก (0, 1, 2)
+            const MAX_RETRIES = 3; // ลองสูงสุด 4 ครั้งรวมรอบแรก (0, 1, 2, 3) — เพิ่มจากเดิมเพราะพบว่า 404 มักเป็นอาการสะดุดชั่วคราว ไม่ใช่ปัญหาถาวร
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 30000); // กันค้างตลอดไปถ้าเน็ตหลุด/ช้ามาก ตัดจบหลัง 30 วินาที
             try {
@@ -1488,19 +1488,21 @@
                 return await response.json();
             } catch (error) {
                 clearTimeout(timeoutId);
-                // 4xx (เช่น 404 = ไม่พบ URL) เป็นปัญหาการตั้งค่าถาวร ลองใหม่กี่ครั้งก็ไม่มีทางผ่าน ไม่ต้องเสียเวลาลองซ้ำ แจ้งเตือนทันที
-                const isPermanentError = error.httpStatus && error.httpStatus >= 400 && error.httpStatus < 500;
+                // เดิมถือว่า 4xx ทุกแบบ (รวม 404) เป็นปัญหาการตั้งค่าถาวรและไม่ลองซ้ำ แต่จากการตรวจสอบ Executions log พบว่า
+                // 404 ที่เจอจริงๆ มักเป็นอาการสะดุดชั่วคราวของโครงสร้างพื้นฐาน Google (คำขอไม่ถึงเซิร์ฟเวอร์เลยด้วยซ้ำ ไม่มี log)
+                // ไม่ใช่ URL/deployment ผิดจริง จึงให้ 404 ลองใหม่ได้เหมือน error ทั่วไป ส่วน 4xx อื่น (เช่น 400, 401, 403) ยังถือว่าถาวรเหมือนเดิม
+                const isPermanentError = error.httpStatus && error.httpStatus >= 400 && error.httpStatus < 500 && error.httpStatus !== 404;
                 if (!isPermanentError && retryCount < MAX_RETRIES) {
                     // ลองใหม่อัตโนมัติแบบเงียบๆ สูงสุด 2 ครั้งก่อนจะแจ้งเตือนผู้ใช้ เพราะ Apps Script บางครั้ง "ตื่นช้า" (cold start)
                     // หรือเน็ตสะดุดชั่วคราว รอบถัดไปมักจะผ่านโดยที่ผู้ใช้ไม่ต้องเห็น error เลย
                     console.warn(`API call failed, retrying (${retryCount + 1}/${MAX_RETRIES})...`, error.message);
-                    await new Promise(resolve => setTimeout(resolve, 1000)); // เว้น 1 วิ ก่อนลองใหม่ ให้เน็ต/เซิร์ฟเวอร์มีเวลาฟื้นตัว
+                    await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))); // เว้นนานขึ้นเรื่อยๆ ทุกครั้งที่ลองใหม่ (1วิ, 2วิ, 3วิ) ให้เน็ต/เซิร์ฟเวอร์มีเวลาฟื้นตัวมากขึ้น
                     return apiCall(payload, retryCount + 1);
                 }
                 console.error('API Call Error (after retries):', error);
                 const isTimeout = error.name === 'AbortError';
                 if (isPermanentError) {
-                    alert(`เชื่อมต่อ Google Apps Script ไม่ได้ (HTTP ${error.httpStatus} - ไม่พบ URL)\n\nURL ที่เว็บนี้กำลังใช้อยู่ตอนนี้คือ:\n${gasWebAppUrl}\n\nกรุณาเข้า Apps Script > Deploy > Manage deployments แล้วเทียบ Web App URL ปัจจุบันกับ URL ด้านบนว่าตรงกันทุกตัวอักษรไหม ถ้าไม่ตรง ให้คัดลอก URL ที่ถูกต้องมาส่งให้ผู้ดูแลระบบแก้ไขโค้ด`);
+                    alert(`เชื่อมต่อ Google Apps Script ไม่ได้ (HTTP ${error.httpStatus} - ไม่พบ URL)\n\nนี่ไม่ใช่ปัญหาเน็ตช้า แต่ URL ของ Apps Script ที่ตั้งไว้ในเว็บอาจไม่ถูกต้องหรือ deployment ถูกลบ/เปลี่ยนไปแล้ว กรุณาเช็คว่า URL ใน gasWebAppUrl ตรงกับ Web App URL ปัจจุบันใน Apps Script > Deploy > Manage deployments`);
                 } else {
                     alert(isTimeout
                         ? `การเชื่อมต่อกับ Server ใช้เวลานานเกินไป (ลองใหม่ให้แล้ว ${MAX_RETRIES + 1} รอบ) สัญญาณเน็ตอาจไม่เสถียร กรุณาลองใหม่อีกครั้ง หรือเช็คสัญญาณ WiFi/มือถือ`
