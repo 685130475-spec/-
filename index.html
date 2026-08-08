@@ -947,7 +947,7 @@
                     await new Promise(resolve => setTimeout(resolve, 0)); // เว้นจังหวะสั้นๆ ระหว่างแต่ละกลุ่มให้เบราว์เซอร์คืนตัว
                 }
                 const validDescriptors = labeledFaceDescriptors.filter(Boolean);
-                if (validDescriptors.length > 0) { faceMatcher = new faceapi.FaceMatcher(validDescriptors, 0.4); console.log('Face matcher ready.'); }
+                if (validDescriptors.length > 0) { faceMatcher = new faceapi.FaceMatcher(validDescriptors, 0.5); console.log('Face matcher ready.'); }
                 else { faceMatcher = null; }
             } else { faceMatcher = null; console.log('No student data found for recognition.'); }
 
@@ -982,7 +982,7 @@
 
             setTimeout(() => {
                 successOverlay.classList.add('hidden');
-            }, 2500);
+            }, 3500);
 
             // บันทึกขึ้น Google Sheet ทันทีตอนสแกนติด ไม่ต้องรอกด "บันทึกและเสร็จสิ้น" อีกต่อไป
             // (เดิมข้อมูลถูกเก็บไว้แค่ในเครื่องจนกว่าจะกดปุ่มจบการสแกน ถ้าลืมกดหรือปิดหน้าไปก่อน ข้อมูลทั้งหมดจะหายไม่ถูกบันทึกเลย)
@@ -999,7 +999,7 @@
             const el = document.getElementById('scan-unknown-overlay');
             if (!el) return;
             el.classList.remove('hidden');
-            setTimeout(() => el.classList.add('hidden'), 2200);
+            setTimeout(() => el.classList.add('hidden'), 3000);
         }
 
         // --- STUDENT MODAL & PHOTO UPLOAD ---
