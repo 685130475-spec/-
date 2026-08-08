@@ -251,6 +251,16 @@
         const gasWebAppUrl = 'https://script.google.com/macros/s/AKfycbzRCk-FbGOGXPWcZH7vtZxM4gWVBafbGye6GHDmGbuHoEMizPyIOe9ve-QAs05sLOUrOw/exec';
         let faceMatcher = null, pieChart;
         let descriptorCache = {}; // แคชผลคำนวณใบหน้าต่อคน กันคำนวณซ้ำทุกครั้งที่กด "เริ่มเช็คชื่อ" — สำคัญมากเวลามีนักศึกษาหลักสิบ-ร้อยคน
+        // เก็บแคชนี้ไว้ถาวรใน localStorage ด้วย (ไม่ใช่แค่ในตัวแปร JS ที่หายไปทุกครั้งที่ปิด/รีเฟรชหน้า)
+        // เพราะการคำนวณค่าใบหน้าของนักศึกษาทั้งห้องใหม่ทุกครั้งที่เปิดเว็บคือสาเหตุหลักที่ทำให้กด "เริ่มเช็คชื่อ" แล้วรอนานหลายสิบวินาที
+        try {
+            const savedCache = localStorage.getItem('faceDescriptorCache');
+            if (savedCache) descriptorCache = JSON.parse(savedCache);
+        } catch (e) { console.warn('อ่านแคชใบหน้าที่เก็บไว้ไม่สำเร็จ เริ่มคำนวณใหม่ทั้งหมด', e); descriptorCache = {}; }
+        function saveDescriptorCache() {
+            try { localStorage.setItem('faceDescriptorCache', JSON.stringify(descriptorCache)); }
+            catch (e) { console.warn('บันทึกแคชใบหน้าไม่สำเร็จ (พื้นที่เก็บข้อมูลอาจเต็ม)', e); }
+        }
         let modelsLoadedPromise = null; // ติดตามสถานะการโหลดโมเดล AI ที่ตอนนี้ทำงานพื้นหลังตั้งแต่เข้าแอป
         let students = [], attendance = [], checkedInToday = new Map();
 
@@ -774,6 +784,7 @@
             document.getElementById('video-loading-text').innerText = 'กำลังเปิดกล้อง...';
             document.getElementById('video-wrapper').classList.add('hidden');
             document.getElementById('scan-success-overlay').classList.add('hidden');
+            hideUnknownFaceOverlay();
             document.getElementById('scanning-section').classList.add('hidden');
             
             if (!showStudentList) {
@@ -875,6 +886,9 @@
                             if (isUnknown) {
                                 hasUnknownFace = true;
                             } else {
+                                // เจอคนที่รู้จักแล้วในเฟรมนี้ ต้องซ่อนจอ "ไม่พบข้อมูลใบหน้า" ทันที เผื่อมันค้างอยู่จากเฟรมก่อนหน้า
+                                // (เดิมปล่อยให้ค้างจนครบเวลาของมันเอง ทำให้บางครั้งชื่อขึ้นถูกต้องแล้วแต่จอสีส้มค้างทับบังอยู่)
+                                hideUnknownFaceOverlay();
                                 const student = students.find(s => s.name === result.label);
                                 if (student && !checkedInToday.has(student.studentid)) {
                                     handleRecognition(student);
@@ -927,15 +941,15 @@
                     const sig = student.imagedatabase64.length + '_' + student.imagedatabase64.slice(-40);
                     const cached = descriptorCache[student.studentid];
                     if (cached && cached.sig === sig) {
-                        return cached.descriptor; // รูปเดิม ไม่เปลี่ยน ใช้ค่าที่เคยคำนวณไว้แล้ว ไม่ต้องคำนวณซ้ำ (เร็วมากหลังรอบแรก)
+                        // รูปเดิม ไม่เปลี่ยน ใช้ค่าที่เคยคำนวณไว้แล้ว (จาก localStorage หรือรอบก่อนหน้า) ไม่ต้องคำนวณซ้ำ (เร็วมาก)
+                        return new faceapi.LabeledFaceDescriptors(student.name, [new Float32Array(cached.descriptor)]);
                     }
                     try {
                         const img = await faceapi.fetchImage(student.imagedatabase64);
                         const detections = await faceapi.detectSingleFace(img, new faceapi.SsdMobilenetv1Options()).withFaceLandmarks().withFaceDescriptor();
                         if (detections) {
-                            const labeled = new faceapi.LabeledFaceDescriptors(student.name, [detections.descriptor]);
-                            descriptorCache[student.studentid] = { sig, descriptor: labeled };
-                            return labeled;
+                            descriptorCache[student.studentid] = { sig, descriptor: Array.from(detections.descriptor) };
+                            return new faceapi.LabeledFaceDescriptors(student.name, [detections.descriptor]);
                         }
                     } catch (e) { console.error(`Could not process image for ${student.name}`, e); }
                     return null;
@@ -946,6 +960,7 @@
                     labeledFaceDescriptors.push(...results);
                     await new Promise(resolve => setTimeout(resolve, 0)); // เว้นจังหวะสั้นๆ ระหว่างแต่ละกลุ่มให้เบราว์เซอร์คืนตัว
                 }
+                saveDescriptorCache(); // เก็บผลคำนวณรอบนี้ลง localStorage ไว้ ครั้งหน้าเปิดเว็บใหม่จะได้ไม่ต้องคำนวณซ้ำทั้งหมด
                 const validDescriptors = labeledFaceDescriptors.filter(Boolean);
                 if (validDescriptors.length > 0) { faceMatcher = new faceapi.FaceMatcher(validDescriptors, 0.5); console.log('Face matcher ready.'); }
                 else { faceMatcher = null; }
@@ -995,11 +1010,19 @@
         }
 
         // แสดงข้อความเตือนเมื่อเจอใบหน้าแต่ไม่ตรงกับข้อมูลนักศึกษาคนไหนในระบบเลย (ยังไม่เคยลงทะเบียนใบหน้า)
+        let unknownOverlayTimeoutId = null;
         function showUnknownFaceOverlay() {
             const el = document.getElementById('scan-unknown-overlay');
             if (!el) return;
             el.classList.remove('hidden');
-            setTimeout(() => el.classList.add('hidden'), 3000);
+            if (unknownOverlayTimeoutId) clearTimeout(unknownOverlayTimeoutId);
+            unknownOverlayTimeoutId = setTimeout(() => el.classList.add('hidden'), 3000);
+        }
+        function hideUnknownFaceOverlay() {
+            const el = document.getElementById('scan-unknown-overlay');
+            if (!el) return;
+            el.classList.add('hidden');
+            if (unknownOverlayTimeoutId) { clearTimeout(unknownOverlayTimeoutId); unknownOverlayTimeoutId = null; }
         }
 
         // --- STUDENT MODAL & PHOTO UPLOAD ---
