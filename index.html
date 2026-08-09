@@ -310,6 +310,7 @@
         let lastUnknownFaceAlert = 0;
         // ต้องจับหน้าคนเดิมได้ตรงกัน "ติดต่อกัน 3 เฟรม" ก่อนถึงจะยืนยันเช็คชื่อจริง กันเคสจับผิดคนแบบเฟรมเดียวหลุดๆ (เช่น ระยะห่างค่าความมั่นใจก้ำกึ่งกับเกณฑ์พอดี)
         let pendingRecognition = { studentId: null, count: 0 };
+        let successCooldownUntil = 0; // ช่วงเวลาที่ให้พักการตรวจจับหลังจับคนติดแล้ว กันขึ้น "unknown" ซ้อนทับคนเดิมที่เพิ่งสแกนผ่าน
         let recognitionInterval = null; 
         let currentGeoLocation = null;
 
@@ -862,8 +863,9 @@
             // ใช้ setTimeout วนซ้ำ (ไม่ใช่ setInterval) เพื่อไม่ให้รอบตรวจจับใบหน้าซ้อนทับกัน
             // ถ้ารอบตรวจจับหนึ่งครั้งใช้เวลานานกว่า 300ms ของเดิม รอบถัดไปจะไม่ยิงซ้ำจนกว่ารอบก่อนจะเสร็จ
             // ทำให้ตอนกด "สิ้นสุดการเช็คชื่อ" หยุดได้เกือบทันที ไม่ต้องรอคิวที่สะสมไว้ (แก้ปัญหาหน่วง 3-6 วินาที)
-            async function recognitionLoop() {
+           async function recognitionLoop() {
                 if (!isScanning) return;
+                if (Date.now() < successCooldownUntil) { recognitionInterval = setTimeout(recognitionLoop, 300); return; }
                 try {
                     const detections = await faceapi.detectAllFaces(video, new faceapi.SsdMobilenetv1Options()).withFaceLandmarks().withFaceDescriptors();
                     if (!isScanning) return; // เช็คซ้ำเผื่อผู้ใช้กดหยุดระหว่างกำลังประมวลผลอยู่
@@ -1005,6 +1007,7 @@
             const { period, status } = getPeriodAndStatus(now);
             const record = { id: student.studentid, name: student.name, class: student.class, timestamp: now.toISOString(), location: currentGeoLocation ? `${currentGeoLocation.lat},${currentGeoLocation.lng}` : 'N/A', status: status, period: period, teacher: selectedTeacher || '', subject: selectedSubject || '' };
             checkedInToday.set(student.studentid, record); // กันสแกนซ้ำคนเดิมในรอบการสแกนนี้
+            successCooldownUntil = Date.now() + 3500; // พักการตรวจจับ 3.5 วิ เท่ากับเวลาที่กรอบเขียวโชว์ กันจับคนเดิมมั่วเป็น unknown ทันทีหลังสแกนติด
 
             const successOverlay = document.getElementById('scan-success-overlay');
             const successName = document.getElementById('scan-success-name');
