@@ -185,11 +185,14 @@
                                 <span class="text-xl font-bold">ไม่พบข้อมูลใบหน้านี้ในระบบ</span>
                                 <span class="block text-sm mt-1 text-amber-100">กรุณาแจ้งครูผู้สอนเพื่อลงทะเบียนใบหน้าก่อนเช็คชื่อ</span>
                             </div>
+                            <!-- จอยืนยันตัวตนก่อนบันทึกจริง กันจับผิดคนหลุดเข้าระบบ: ครูเทียบรูป+ชื่อที่ระบบเจอ แล้วกดยืนยันเองก่อนจะบันทึกลงชีต -->
+                            <!-- จอยืนยันตัวตนถูกเอาออกแล้วตามคำขอ กลับไปเป็นบันทึกอัตโนมัติทันทีเมื่อจับหน้าได้ -->
                         </div>
                     </div>
                     <div class="text-center">
                         <button onclick="stopScanning()" class="bg-red-600 text-white px-8 py-3 rounded-full hover:bg-red-700 text-lg font-semibold flex items-center justify-center mx-auto gap-2">
                             <i data-lucide="stop-circle"></i><span>สิ้นสุดการเช็คชื่อ</span>
+
                         </button>
                     </div>
                 </div>
@@ -305,6 +308,8 @@
         }
         let isScanning = false, captureStream = null;
         let lastUnknownFaceAlert = 0;
+        // ต้องจับหน้าคนเดิมได้ตรงกัน "ติดต่อกัน 3 เฟรม" ก่อนถึงจะยืนยันเช็คชื่อจริง กันเคสจับผิดคนแบบเฟรมเดียวหลุดๆ (เช่น ระยะห่างค่าความมั่นใจก้ำกึ่งกับเกณฑ์พอดี)
+        let pendingRecognition = { studentId: null, count: 0 };
         let recognitionInterval = null; 
         let currentGeoLocation = null;
 
@@ -785,6 +790,7 @@
             document.getElementById('video-wrapper').classList.add('hidden');
             document.getElementById('scan-success-overlay').classList.add('hidden');
             hideUnknownFaceOverlay();
+            pendingRecognition = { studentId: null, count: 0 };
             document.getElementById('scanning-section').classList.add('hidden');
             
             if (!showStudentList) {
@@ -871,7 +877,12 @@
                             const box = resizedDetections[i].detection.box;
                             const isUnknown = result.label === 'unknown';
                             const color = isUnknown ? '#f59e0b' : '#22c55e';
-                            const label = result.toString();
+                            // เดิมใช้ result.toString() ซึ่งจะแปะตัวเลขค่าความมั่นใจต่อท้ายชื่อ (เช่น "ชื่อ (0.42)") ทำให้ครูสับสนว่าเป็นตัวเลขอะไร (เข้าใจผิดว่าเป็นวินาที)
+                            // ตัวเลขนี้มีประโยชน์แค่ตอนแก้บั๊กเท่านั้น ไม่มีประโยชน์กับผู้ใช้งานจริงเลย จึงไม่โชว์บนจออีกต่อไป (ยังคง log ไว้ใน console เผื่อต้องตรวจสอบภายหลัง)
+                            const label = isUnknown ? 'unknown' : result.label;
+                            if (window.location.hostname === 'localhost' || window.location.search.includes('debug')) {
+                                console.log('match:', result.toString());
+                            }
                             // วิดีโอ mirror ไว้ (กล้องหน้า) แต่ canvas ไม่ mirror เพื่อให้ตัวอักษรอ่านออกปกติ จึงต้องคำนวณตำแหน่งกรอบให้กลับด้าน X เองแทน
                             const mirroredX = overlay.width - box.x - box.width;
                             ctx.strokeStyle = color;
@@ -885,13 +896,23 @@
                             ctx.fillText(label, mirroredX + 5, box.y - 5);
                             if (isUnknown) {
                                 hasUnknownFace = true;
+                                pendingRecognition = { studentId: null, count: 0 }; // เจอ unknown แทรก ล้างสถานะที่กำลังรอยืนยันทิ้ง
                             } else {
                                 // เจอคนที่รู้จักแล้วในเฟรมนี้ ต้องซ่อนจอ "ไม่พบข้อมูลใบหน้า" ทันที เผื่อมันค้างอยู่จากเฟรมก่อนหน้า
                                 // (เดิมปล่อยให้ค้างจนครบเวลาของมันเอง ทำให้บางครั้งชื่อขึ้นถูกต้องแล้วแต่จอสีส้มค้างทับบังอยู่)
                                 hideUnknownFaceOverlay();
                                 const student = students.find(s => s.name === result.label);
                                 if (student && !checkedInToday.has(student.studentid)) {
-                                    handleRecognition(student);
+                                    // ต้องเจอ "คนเดิม" ซ้ำ 3 เฟรมติดกันก่อนถึงจะขึ้นจอให้ครูยืนยัน กันจับผิดคนจากเฟรมเดียวที่ค่าความมั่นใจก้ำกึ่งพอดี
+                                    if (pendingRecognition.studentId === student.studentid) {
+                                        pendingRecognition.count++;
+                                    } else {
+                                        pendingRecognition = { studentId: student.studentid, count: 1 };
+                                    }
+                                    if (pendingRecognition.count >= 3) {
+                                        handleRecognition(student);
+                                        pendingRecognition = { studentId: null, count: 0 };
+                                    }
                                 }
                             }
                         });
@@ -962,7 +983,7 @@
                 }
                 saveDescriptorCache(); // เก็บผลคำนวณรอบนี้ลง localStorage ไว้ ครั้งหน้าเปิดเว็บใหม่จะได้ไม่ต้องคำนวณซ้ำทั้งหมด
                 const validDescriptors = labeledFaceDescriptors.filter(Boolean);
-                if (validDescriptors.length > 0) { faceMatcher = new faceapi.FaceMatcher(validDescriptors, 0.5); console.log('Face matcher ready.'); }
+                if (validDescriptors.length > 0) { faceMatcher = new faceapi.FaceMatcher(validDescriptors, 0.4); console.log('Face matcher ready.'); }
                 else { faceMatcher = null; }
             } else { faceMatcher = null; console.log('No student data found for recognition.'); }
 
@@ -1121,7 +1142,7 @@
         // บีบอัดรูปให้พอดีกับขีดจำกัด 50,000 ตัวอักษรของ Google Sheets โดยอัตโนมัติ
         // ครอบทั้งความกว้างและความสูง (เดิมครอบแค่ความกว้างอย่างเดียว รูปแนวตั้งสุดๆ หรือกรณีพิเศษบางอย่างเลยยังหลุดขนาดใหญ่ได้)
         // และถ้าย่อรอบแรกแล้วยังใหญ่เกิน จะลดคุณภาพ/ขนาดลงอีกเรื่อยๆ จนกว่าจะพอดี แทนที่จะปล่อยให้ error ไปเฉยๆ
-        function compressImageToFit(img, maxChars = 45000) {
+        function compressImageToFit(img, maxChars = 48000) {
             const resize = (maxDim, quality) => {
                 const canvas = document.createElement('canvas');
                 let { width, height } = img;
@@ -1134,7 +1155,7 @@
                 canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
                 return canvas.toDataURL('image/jpeg', quality);
             };
-            let maxDim = 380, quality = 0.7;
+            let maxDim = 560, quality = 0.8; // เพิ่มอีกจาก 480/0.75 — ยิ่งรูปคมชัดเท่าไหร่ ยิ่งช่วยให้ AI แยกแยะคนได้แม่นยำขึ้น
             let dataUrl = resize(maxDim, quality);
             let attempts = 0;
             while (dataUrl.length > maxChars && attempts < 6) {
@@ -1344,7 +1365,7 @@
             if (!studentData.imageData) { alert('กรุณาถ่ายภาพหรืออัปโหลดรูปภาพ');
             submitBtn.disabled = false; submitBtn.innerText = 'บันทึก'; return; }
             // Google Sheets จำกัดความยาวข้อความไว้ที่ 50,000 ตัวอักษรต่อ 1 ช่อง เช็คก่อนส่งกันบันทึกไม่สำเร็จแบบเงียบๆ
-            if (studentData.imageData.length > 45000) {
+            if (studentData.imageData.length > 48000) {
                 alert('รูปภาพมีขนาดใหญ่เกินไป (Google Sheets รับได้ไม่เกิน 50,000 ตัวอักษรต่อช่อง) กรุณาถ่ายภาพใหม่ หรือใช้รูปที่มีรายละเอียดน้อยลง/ไฟล์เล็กลง');
                 submitBtn.disabled = false; submitBtn.innerText = 'บันทึก'; return;
             }
