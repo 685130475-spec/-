@@ -312,7 +312,7 @@
         let pendingRecognition = { studentId: null, count: 0 };
         let recognitionInterval = null; 
         let currentGeoLocation = null;
-
+        let lastAlreadyCheckedAlert = 0; // กันแจ้งเตือน "เช็คชื่อไปแล้ว" ถี่เกินไป
         // --- TEACHER / CLASSROOM / SUBJECT SESSION ---
         const TEACHERS_BY_DEPT = {
             "แผนกวิชาสามัญ": [
@@ -916,8 +916,18 @@
                                         handleRecognition(student);
                                         pendingRecognition = { studentId: null, count: 0 };
                                     }
+                                } else if (student && checkedInToday.has(student.studentid)) {
+                                    const now2 = Date.now();
+                                    if (now2 - lastAlreadyCheckedAlert > 3000) {
+                                        lastAlreadyCheckedAlert = now2;
+                                        const el = document.getElementById('scan-success-overlay');
+                                        document.getElementById('scan-success-name').innerText = student.name;
+                                        document.getElementById('scan-success-status').innerText = 'เช็คชื่อไปแล้ววันนี้';
+                                        document.getElementById('scan-success-status').className = 'block text-lg font-semibold text-blue-200 mt-1';
+                                        el.classList.remove('hidden');
+                                        setTimeout(() => el.classList.add('hidden'), 2000);
+                                    }
                                 }
-                            }
                         });
                         // ถ้าเจอใบหน้าแต่ไม่ตรงกับใครในระบบเลย ให้แจ้งเตือนแบบไม่ถี่เกินไป (ทุก 4 วินาที)
                         if (hasUnknownFace) {
