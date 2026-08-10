@@ -1109,6 +1109,7 @@
                 }
             } else {
                 document.getElementById('modal-title').innerText = 'เพิ่มข้อมูลนักศึกษา';
+                if (selectedClassroom) document.getElementById('student-class').value = selectedClassroom; // เดาห้องให้อัตโนมัติจากห้องที่กำลังเลือกอยู่ ลดโอกาสพิมพ์ชื่อห้องผิด/ลืมกรอก
                 switchImageInput('camera');
             }
             document.getElementById('student-modal').classList.remove('hidden');
@@ -1188,11 +1189,19 @@
         async function loadStudentDataForTable() {
             const response = await apiCall({ action: 'getStudents' });
             if (response.success) {
-                students = response.data;
+                // กรองให้เหลือแค่นักศึกษาของห้องที่เลือกอยู่ตอนนี้ (เหมือนแท็บ Dashboard/เช็คชื่อ) แทนที่จะโชว์รวมทุกห้องปนกัน
+                // เพราะแต่ละห้องเรียนจริงมีนักศึกษาคนละกลุ่มกัน การเห็นรวมกันทำให้สับสนว่าห้องไหนมีใครบ้าง
+                students = selectedClassroom ? response.data.filter(s => classMatchesRoom(s.class, selectedClassroom)) : response.data;
+                const heading = document.querySelector('#content-manage h2');
+                if (heading) heading.innerText = selectedClassroom ? `จัดการข้อมูลนักศึกษา — ห้อง ${selectedClassroom}` : 'จัดการข้อมูลนักศึกษา (ทุกห้อง — ยังไม่ได้เลือกห้อง)';
                 const tableBody = document.getElementById('student-table-body');
                 const cardList = document.getElementById('student-card-list');
                 tableBody.innerHTML = '';
                 cardList.innerHTML = '';
+                if (selectedClassroom && students.length === 0) {
+                    tableBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-gray-400">ยังไม่มีนักศึกษาในห้อง ${selectedClassroom} กด "เพิ่มนักศึกษา" หรือ "นำเข้าข้อมูล" เพื่อเริ่มเพิ่ม</td></tr>`;
+                    cardList.innerHTML = `<p class="text-center text-gray-400 py-4">ยังไม่มีนักศึกษาในห้อง ${selectedClassroom}</p>`;
+                }
                 students.forEach(student => {
                     const safeName = student.name.replace(/'/g, "\\'");
 
@@ -1337,7 +1346,7 @@
                         ['ชื่อ'])).trim().replace(/\s+/g, ' '),
                     class: String(pickField(row,
                         ['ชั้นเรียน', 'ห้อง', 'ห้องเรียน', 'class', 'ชั้น'],
-                        ['ชั้น', 'ห้อง', 'class'])).trim()
+                        ['ชั้น', 'ห้อง', 'class'])).trim() || selectedClassroom || ''
                 })).filter(r => r.id && r.name);
 
                 if (importRows.length === 0) {
