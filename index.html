@@ -839,7 +839,7 @@
             const videoLoadingText = document.getElementById('video-loading-text');
             try {
                 // ใช้กล้องหน้า (front/user) ให้นักศึกษาส่องดูตัวเองจัดตำแหน่งใบหน้าในกรอบได้ คล้ายการปลดล็อกมือถือด้วย Face ID
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'user' } } });
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'user' }, width: { ideal: 1280 }, height: { ideal: 720 } } });
                 video.srcObject = stream;
             } catch (err) {
                 console.error('CRITICAL ERROR starting video stream:', err.name, err.message);
@@ -865,7 +865,7 @@
             async function recognitionLoop() {
                 if (!isScanning) return;
                 try {
-                    const detections = await faceapi.detectAllFaces(video, new faceapi.SsdMobilenetv1Options()).withFaceLandmarks().withFaceDescriptors();
+                    const detections = await faceapi.detectAllFaces(video, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5, maxResults: 5 })).withFaceLandmarks().withFaceDescriptors();
                     if (!isScanning) return; // เช็คซ้ำเผื่อผู้ใช้กดหยุดระหว่างกำลังประมวลผลอยู่
                     const resizedDetections = faceapi.resizeResults(detections, displaySize);
                     const ctx = overlay.getContext('2d');
