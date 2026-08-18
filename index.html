@@ -1082,7 +1082,7 @@
                 // กรองให้เหลือแค่นักศึกษาของห้องที่เลือกอยู่ตอนนี้ (เหมือนแท็บ Dashboard/เช็คชื่อ) แทนที่จะโชว์รวมทุกห้องปนกัน
                 students = selectedClassroom ? response.data.filter(s => classMatchesRoom(s.class, selectedClassroom)) : response.data;
                 const heading = document.querySelector('#content-manage h2');
-                if (heading) heading.innerText = selectedClassroom ? `จัดการข้อมูลนักศึกษา — ห้อง ${selectedClassroom}` : 'จัดการข้อมูลนักศึกษา (ทุกห้อง — ยังไม่ได้เลือกห้อง)';
+                if (heading) heading.innerText = selectedClassroom ? `จัดการข้อมูลนักศึกษา — ห้อง ${selectedClassroom}` : 'จัดการข้อมูลนักศึกษา';
                 const tableBody = document.getElementById('student-table-body');
                 const cardList = document.getElementById('student-card-list');
                 tableBody.innerHTML = '';
